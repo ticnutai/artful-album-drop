@@ -28,19 +28,19 @@ function StudioLayout() {
   const [tool, setTool] = useState("pen");
   const { reactions, send } = useReactions();
   return (
-    <div className="flex h-screen w-full bg-slate-50 text-slate-900 overflow-hidden">
+    <div className="flex h-screen w-full bg-[oklch(0.96_0.015_85)] text-[oklch(0.18_0.006_60)] overflow-hidden">
       <aside className="w-72 shrink-0 p-4"><ParticipantsPanel /></aside>
       <main className="flex-1 flex flex-col relative min-w-0">
-        <header className="h-16 px-6 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between shrink-0">
+        <header className="h-16 px-6 bg-white/70 backdrop-blur-md border-b border-[oklch(0.76_0.13_85/0.25)] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <span className="relative flex size-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" /><span className="relative inline-flex rounded-full size-3 bg-red-500" /></span>
-            <span className="text-sm font-medium text-slate-600">בשידור חי: {time}</span>
-            <div className="h-4 w-px bg-slate-200" />
-            <h1 className="font-bold">שיתוף מסך — תוכנית קומה_2.dwg</h1>
+            <span className="relative flex size-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[oklch(0.76_0.13_85)] opacity-75" /><span className="relative inline-flex rounded-full size-3 bg-[oklch(0.76_0.13_85)]" /></span>
+            <span className="text-sm font-medium text-[oklch(0.35_0.01_60)]">בשידור חי · {time}</span>
+            <div className="h-4 w-px bg-[oklch(0.76_0.13_85/0.3)]" />
+            <h1 className="font-serif text-lg tracking-tight">שיתוף מסך · תוכנית קומה_2.dwg</h1>
           </div>
-          <button className="text-sm font-medium px-4 py-2 rounded-lg bg-primary text-primary-foreground">הזמן</button>
+          <button className="text-sm font-medium px-5 py-2 rounded-md bg-[oklch(0.14_0.006_60)] text-[oklch(0.88_0.09_90)] border border-[oklch(0.76_0.13_85/0.4)] hover:bg-[oklch(0.19_0.006_60)] transition-colors">הזמן</button>
         </header>
-        <div className="flex-1 bg-slate-100 p-8 flex items-center justify-center relative overflow-hidden">
+        <div className="flex-1 bg-[oklch(0.93_0.012_85)] p-8 flex items-center justify-center relative overflow-hidden">
           <div className="w-full max-w-5xl aspect-video"><ScreenCanvas /></div>
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2"><Toolbar tool={tool} setTool={setTool} /></div>
           <div className="absolute bottom-8 right-8 flex flex-col items-center gap-2">
@@ -58,23 +58,23 @@ function CommandLayout() {
   const [tool, setTool] = useState("pen");
   const { reactions, send } = useReactions();
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-950 text-slate-100 overflow-hidden">
-      <header className="h-14 px-6 border-b border-white/5 bg-slate-900/60 flex items-center justify-between shrink-0">
+    <div className="flex flex-col h-screen w-full bg-obsidian text-champagne overflow-hidden" style={{ background: "var(--gradient-noir)" }}>
+      <header className="h-14 px-6 border-b border-[oklch(0.76_0.13_85/0.2)] bg-[oklch(0.14_0.006_60/0.7)] backdrop-blur-md flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
-          <span className="size-2.5 rounded-full bg-red-500 animate-pulse" />
-          <span className="font-mono text-sm">{time}</span>
-          <div className="h-4 w-px bg-white/10" />
-          <span className="text-sm text-slate-300">תוכנית קומה_2.dwg</span>
+          <span className="size-2.5 rounded-full bg-gold animate-pulse" />
+          <span className="font-mono text-sm text-gold-soft tracking-widest">{time}</span>
+          <div className="h-4 w-px bg-[oklch(0.76_0.13_85/0.3)]" />
+          <span className="font-serif text-lg text-champagne">תוכנית קומה_2.dwg</span>
         </div>
         <div className="flex -space-x-2 space-x-reverse">
           {participants.slice(0, 3).map((p) => (
-            <div key={p.name} className={`size-7 rounded-full border-2 border-slate-950 ${p.bg} ${p.color} grid place-items-center text-xs font-bold`}>{p.initial}</div>
+            <div key={p.name} className={`size-7 rounded-full border-2 border-obsidian ${p.bg} ${p.color} grid place-items-center text-xs font-bold ring-1 ring-[oklch(0.76_0.13_85/0.4)]`}>{p.initial}</div>
           ))}
         </div>
       </header>
       <div className="flex-1 flex overflow-hidden">
         <aside className="w-64 p-3 shrink-0"><ParticipantsPanel theme="dark" /></aside>
-        <main className="flex-1 relative bg-slate-950 p-6">
+        <main className="flex-1 relative p-6" style={{ background: "radial-gradient(ellipse at top, oklch(0.22 0.008 60), var(--obsidian) 70%)" }}>
           <ScreenCanvas />
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2"><Toolbar tool={tool} setTool={setTool} theme="dark" /></div>
         </main>
@@ -92,18 +92,18 @@ function FloatingLayout() {
   const [tool, setTool] = useState("pen");
   const { reactions, send } = useReactions();
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 p-6 flex items-center justify-center overflow-hidden">
-      <div className="relative w-full max-w-7xl aspect-[16/10] bg-slate-900 rounded-[2.5rem] shadow-2xl border-[6px] border-white overflow-hidden">
+    <div className="min-h-screen w-full p-6 flex items-center justify-center overflow-hidden" style={{ background: "radial-gradient(circle at 20% 20%, oklch(0.22 0.008 60), var(--obsidian) 60%)" }}>
+      <div className="relative w-full max-w-7xl aspect-[16/10] rounded-[2rem] overflow-hidden" style={{ background: "var(--onyx)", boxShadow: "var(--shadow-noir), 0 0 0 1px oklch(0.76 0.13 85 / 0.35), 0 0 0 6px oklch(0.14 0.006 60)" }}>
         <div className="absolute inset-0"><ScreenCanvas rounded="rounded-none" /></div>
         <div className="absolute top-5 inset-x-5 flex justify-between">
-          <div className="bg-slate-900/70 backdrop-blur-md border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-3">
-            <span className="text-indigo-300 text-[10px] font-bold">4F2K</span>
-            <span className="size-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-white font-mono text-sm">{time}</span>
+          <div className="bg-[oklch(0.14_0.006_60/0.75)] backdrop-blur-md border border-[oklch(0.76_0.13_85/0.3)] rounded-xl px-4 py-2 flex items-center gap-3">
+            <span className="text-[oklch(0.88_0.09_90)] text-[10px] font-bold tracking-[0.2em]">4F2K</span>
+            <span className="size-2 rounded-full bg-[oklch(0.76_0.13_85)] animate-pulse" />
+            <span className="text-champagne font-mono text-sm tracking-wider">{time}</span>
           </div>
           <div className="flex -space-x-2 space-x-reverse">
             {participants.filter((p) => p.role !== "מנותק").map((p) => (
-              <div key={p.name} className={`size-10 rounded-full border-2 border-slate-900 ${p.bg} ${p.color} grid place-items-center font-bold shadow-lg`}>{p.initial}</div>
+              <div key={p.name} className={`size-10 rounded-full border-2 border-obsidian ${p.bg} ${p.color} grid place-items-center font-bold shadow-lg ring-1 ring-[oklch(0.76_0.13_85/0.5)]`}>{p.initial}</div>
             ))}
           </div>
         </div>
