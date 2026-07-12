@@ -148,8 +148,8 @@ export function SmartCanvas() {
         {preview && <g opacity={0.7}><ShapeSvg s={preview} /></g>}
       </svg>
       {flash && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider text-obsidian pointer-events-none animate-fade-in"
-             style={{ background: "var(--gradient-gold)", boxShadow: "var(--shadow-gold)" }}>
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider pointer-events-none animate-fade-in"
+             style={{ background: "var(--gradient-gold)", boxShadow: "var(--shadow-gold)", color: "var(--obsidian, #0d0d0d)" }}>
           ✨ {flash}
         </div>
       )}
