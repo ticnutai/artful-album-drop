@@ -20,7 +20,14 @@
 
 @theme inline {
   --font-heebo: "Heebo", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Heebo", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Work Sans", "Heebo", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", "Frank Ruhl Libre", ui-serif, Georgia, serif;
+  --font-serif: "Frank Ruhl Libre", "Instrument Serif", ui-serif, Georgia, serif;
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-onyx: var(--onyx);
+  --color-obsidian: var(--obsidian);
+  --color-champagne: var(--champagne);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -64,26 +71,36 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.535 0.24 277);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --radius: 0.5rem;
+  /* Luxury noir & gold — onyx surface, champagne foreground, gold accent */
+  --obsidian: oklch(0.14 0.006 60);           /* #0d0d0d */
+  --onyx: oklch(0.19 0.006 60);               /* #1a1a1a */
+  --gold: oklch(0.76 0.13 85);                /* #c9a84c */
+  --gold-soft: oklch(0.88 0.09 90);           /* #f0d78c */
+  --champagne: oklch(0.96 0.015 85);          /* #f7f2e6 */
+  --background: var(--obsidian);
+  --foreground: var(--champagne);
+  --card: var(--onyx);
+  --card-foreground: var(--champagne);
+  --popover: var(--onyx);
+  --popover-foreground: var(--champagne);
+  --primary: var(--gold);
+  --primary-foreground: oklch(0.12 0.006 60);
+  --secondary: oklch(0.24 0.006 60);
+  --secondary-foreground: var(--champagne);
+  --muted: oklch(0.24 0.006 60);
+  --muted-foreground: oklch(0.72 0.012 85);
+  --accent: var(--gold-soft);
+  --accent-foreground: oklch(0.12 0.006 60);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: var(--gold);
+  --shadow-gold: 0 20px 60px -20px color-mix(in oklab, var(--gold) 45%, transparent);
+  --shadow-noir: 0 25px 70px -25px oklch(0 0 0 / 0.7);
+  --gradient-gold: linear-gradient(135deg, var(--gold-soft), var(--gold) 55%, oklch(0.55 0.12 78));
+  --gradient-noir: linear-gradient(160deg, var(--obsidian), var(--onyx));
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
