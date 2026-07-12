@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import floorPlan from "@/assets/floor-plan.jpg";
+import { SmartCanvas } from "./SmartCanvas";
+import { drawStore, useDraw, PALETTE, type Tool } from "./drawStore";
 
 export type Participant = {
   initial: string;
@@ -18,10 +20,11 @@ export const participants: Participant[] = [
 
 export const tools = [
   { id: "pen", label: "עט" },
+  { id: "line", label: "קו" },
+  { id: "arrow", label: "חץ" },
   { id: "circle", label: "עיגול" },
   { id: "rect", label: "מלבן" },
-  { id: "text", label: "טקסט" },
-  { id: "color", label: "צבע" },
+  { id: "eraser", label: "מחק" },
 ] as const;
 
 export const emojiSet = ["👏", "🎉", "🔥", "❤️", "👍"];
@@ -60,39 +63,106 @@ export function ScreenCanvas({ rounded = "rounded-2xl" }: { rounded?: string }) 
   return (
     <div className={`w-full h-full bg-white ${rounded} shadow-2xl shadow-indigo-500/10 border border-slate-200 relative overflow-hidden`}>
       <img src={floorPlan} alt="תוכנית קומה" className="w-full h-full object-cover" />
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 size-24 border-4 border-red-500 rounded-full opacity-80" />
-        <svg className="absolute top-1/2 right-1/3 w-40 h-16 -translate-y-1/2" viewBox="0 0 160 60">
-          <path d="M 5 50 Q 40 5, 80 30 T 155 15" stroke="rgb(239 68 68)" strokeWidth="4" fill="none" strokeLinecap="round" />
-        </svg>
-      </div>
+      <SmartCanvas />
     </div>
   );
 }
 
-export function Toolbar({ tool, setTool, theme = "light", orientation = "horizontal" }: {
+function ToolIcon({ id }: { id: string }) {
+  if (id === "pen") return <div className="size-5 border-b-2 border-r-2 border-current rotate-45" />;
+  if (id === "line") return <svg viewBox="0 0 20 20" className="size-5"><line x1="3" y1="17" x2="17" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>;
+  if (id === "arrow") return <svg viewBox="0 0 20 20" className="size-5"><line x1="3" y1="17" x2="15" y2="5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><polyline points="9,4 15,5 14,11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  if (id === "circle") return <div className="size-5 border-2 border-current rounded-full" />;
+  if (id === "rect") return <div className="size-5 border-2 border-current rounded-sm" />;
+  if (id === "eraser") return <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14l6-6 6 6-4 4H8z"/><path d="M4 18h12"/></svg>;
+  return null;
+}
+
+export function Toolbar({ tool: _tool, setTool: _setTool, theme = "light", orientation = "horizontal" }: {
   tool: string; setTool: (t: string) => void; theme?: Theme; orientation?: "horizontal" | "vertical";
 }) {
+  const tool = useDraw((s) => s.tool);
+  const color = useDraw((s) => s.color);
+  const smart = useDraw((s) => s.smart);
+  const [openColor, setOpenColor] = useState(false);
+  const dark = theme === "dark";
+  const vert = orientation === "vertical";
+
   return (
-    <div className={`flex ${orientation === "vertical" ? "flex-col" : ""} items-center gap-1 p-2 border rounded-2xl shadow-xl ${themeClasses(theme)}`}>
-      {tools.map((t) => (
+    <div className={`flex ${vert ? "flex-col" : ""} items-center gap-1 p-2 border rounded-2xl shadow-xl ${themeClasses(theme)}`}>
+      {tools.map((t) => {
+        const active = tool === t.id;
+        return (
+          <button
+            key={t.id}
+            onClick={() => { drawStore.setTool(t.id as Tool); _setTool(t.id); }}
+            className={`p-3 rounded-xl transition-all ${
+              active
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                : dark ? "hover:bg-white/10 text-slate-300" : "hover:bg-slate-100 text-slate-600"
+            }`}
+            aria-label={t.label} title={t.label}
+          >
+            <ToolIcon id={t.id} />
+          </button>
+        );
+      })}
+
+      <div className={`${vert ? "h-px w-6" : "w-px h-6"} bg-current opacity-20 mx-1`} />
+
+      {/* Smart toggle */}
+      <button
+        onClick={() => drawStore.setSmart(!smart)}
+        title={smart ? "סימונים חכמים · פועל" : "סימונים חכמים · כבוי"}
+        aria-label="סימונים חכמים"
+        className={`p-3 rounded-xl transition-all relative ${
+          smart ? "text-primary-foreground scale-105" : dark ? "hover:bg-white/10 text-slate-300" : "hover:bg-slate-100 text-slate-600"
+        }`}
+        style={smart ? { background: "var(--gradient-gold)", boxShadow: "var(--shadow-gold)" } : undefined}
+      >
+        <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 2l1.6 4.4L16 8l-4.4 1.6L10 14l-1.6-4.4L4 8l4.4-1.6z"/>
+          <path d="M15 14l.7 1.8L17.5 16l-1.8.7L15 18.5l-.7-1.8L12.5 16l1.8-.7z"/>
+        </svg>
+      </button>
+
+      {/* Color */}
+      <div className="relative">
         <button
-          key={t.id}
-          onClick={() => setTool(t.id)}
-          className={`p-3 rounded-xl transition-all ${
-            tool === t.id
-              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
-              : theme === "dark" ? "hover:bg-white/10 text-slate-300" : "hover:bg-slate-100 text-slate-600"
-          }`}
-          aria-label={t.label} title={t.label}
+          onClick={() => setOpenColor((o) => !o)}
+          className={`p-3 rounded-xl ${dark ? "hover:bg-white/10" : "hover:bg-slate-100"}`}
+          aria-label="צבע"
+          title="צבע"
         >
-          {t.id === "pen" && <div className="size-5 border-b-2 border-r-2 border-current rotate-45" />}
-          {t.id === "circle" && <div className="size-5 border-2 border-current rounded-full" />}
-          {t.id === "rect" && <div className="size-5 border-2 border-current rounded-sm" />}
-          {t.id === "text" && <span className="size-5 grid place-items-center font-bold text-sm">T</span>}
-          {t.id === "color" && <div className="size-5 rounded-full bg-gradient-to-br from-red-500 via-amber-400 to-primary" />}
+          <div className="size-5 rounded-full border border-black/20" style={{ background: color }} />
         </button>
-      ))}
+        {openColor && (
+          <div className={`absolute z-40 ${vert ? "right-full mr-2 top-0" : "bottom-full mb-2 right-0"} p-2 rounded-xl border shadow-xl grid grid-cols-4 gap-1 ${themeClasses(theme)}`}>
+            {PALETTE.map((c) => (
+              <button key={c} onClick={() => { drawStore.setColor(c); setOpenColor(false); }}
+                className={`size-7 rounded-full border-2 ${color === c ? "border-current" : "border-transparent"}`}
+                style={{ background: c }} aria-label={c} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={() => drawStore.undo()}
+        title="בטל"
+        aria-label="בטל"
+        className={`p-3 rounded-xl ${dark ? "hover:bg-white/10 text-slate-300" : "hover:bg-slate-100 text-slate-600"}`}
+      >
+        <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10a5 5 0 0 1 5-5h6"/><polyline points="9,2 4,5 9,8"/></svg>
+      </button>
+      <button
+        onClick={() => drawStore.clear()}
+        title="נקה הכל"
+        aria-label="נקה הכל"
+        className={`p-3 rounded-xl ${dark ? "hover:bg-white/10 text-slate-300" : "hover:bg-slate-100 text-slate-600"}`}
+      >
+        <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 6l8 8M14 6l-8 8"/></svg>
+      </button>
     </div>
   );
 }
