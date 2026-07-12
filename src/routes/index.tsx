@@ -146,13 +146,14 @@ function LayoutSwitcher({
   return (
     <div className="fixed bottom-6 left-6 z-50" dir="rtl">
       {open && (
-        <div className="absolute bottom-16 left-0 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 max-h-[70vh] overflow-y-auto animate-fade-in">
+        <div className="absolute bottom-16 left-0 w-80 rounded-2xl p-2 max-h-[70vh] overflow-y-auto animate-fade-in border border-[oklch(0.76_0.13_85/0.25)]"
+             style={{ background: "linear-gradient(180deg, oklch(0.19 0.006 60), oklch(0.14 0.006 60))", boxShadow: "var(--shadow-noir), 0 0 0 1px oklch(0.76 0.13 85 / 0.15)" }}>
           <div className="px-3 py-2 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">פריסות</span>
+            <span className="text-[10px] font-bold text-gold uppercase tracking-[0.25em]">פריסות</span>
             {userId ? (
-              <button onClick={onSignOut} className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1"><LogOut className="size-3" />יציאה</button>
+              <button onClick={onSignOut} className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1"><LogOut className="size-3" />יציאה</button>
             ) : (
-              <button onClick={onSignIn} className="text-xs text-primary flex items-center gap-1"><User className="size-3" />התחבר לשמירה</button>
+              <button onClick={onSignIn} className="text-xs text-gold-soft hover:text-gold flex items-center gap-1"><User className="size-3" />התחבר לשמירה</button>
             )}
           </div>
           {builtins.map((opt) => {
@@ -160,48 +161,49 @@ function LayoutSwitcher({
             const active = currentBuiltin === opt.key && !currentCustomId;
             return (
               <button key={opt.key} onClick={() => { onBuiltinChange(opt.key); setOpen(false); }}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl text-right transition-colors ${active ? "bg-primary/10" : "hover:bg-slate-50"}`}>
-                <div className={`size-10 rounded-lg grid place-items-center shrink-0 ${active ? "bg-primary text-white" : "bg-slate-100 text-slate-600"}`}><Icon className="size-5" /></div>
+                className={`w-full flex items-center gap-3 p-3 rounded-xl text-right transition-colors ${active ? "bg-[oklch(0.76_0.13_85/0.14)] ring-1 ring-[oklch(0.76_0.13_85/0.35)]" : "hover:bg-[oklch(1_0_0/0.04)]"}`}>
+                <div className={`size-10 rounded-lg grid place-items-center shrink-0 ${active ? "bg-gold text-primary-foreground" : "bg-[oklch(1_0_0/0.05)] text-champagne"}`}><Icon className="size-5" /></div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold">{opt.label}</div>
-                  <div className="text-xs text-slate-500">{opt.description}</div>
+                  <div className="font-serif text-base tracking-tight text-champagne">{opt.label}</div>
+                  <div className="text-xs text-muted-foreground">{opt.description}</div>
                 </div>
-                {active && <Check className="size-4 text-primary" />}
+                {active && <Check className="size-4 text-gold" />}
               </button>
             );
           })}
 
           {customLayouts.length > 0 && (
             <>
-              <div className="mx-3 my-2 h-px bg-slate-100" />
-              <div className="px-3 py-1 text-xs font-bold text-slate-500 uppercase tracking-wider">שלי</div>
+              <div className="mx-3 my-2 h-px bg-[oklch(0.76_0.13_85/0.15)]" />
+              <div className="px-3 py-1 text-[10px] font-bold text-gold uppercase tracking-[0.25em]">שלי</div>
               {customLayouts.map((l) => {
                 const active = currentCustomId === l.id;
                 return (
-                  <div key={l.id} className={`group flex items-center gap-2 p-2 rounded-xl ${active ? "bg-primary/10" : "hover:bg-slate-50"}`}>
+                  <div key={l.id} className={`group flex items-center gap-2 p-2 rounded-xl ${active ? "bg-[oklch(0.76_0.13_85/0.14)] ring-1 ring-[oklch(0.76_0.13_85/0.35)]" : "hover:bg-[oklch(1_0_0/0.04)]"}`}>
                     <button onClick={() => { onCustomChange(l); setOpen(false); }} className="flex items-center gap-3 flex-1 min-w-0 text-right">
-                      <div className="size-10 rounded-lg bg-slate-100 overflow-hidden shrink-0">
-                        {l.thumbnail ? <img src={l.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-slate-400"><LayoutGrid className="size-4" /></div>}
+                      <div className="size-10 rounded-lg bg-[oklch(1_0_0/0.05)] overflow-hidden shrink-0 ring-1 ring-[oklch(0.76_0.13_85/0.25)]">
+                        {l.thumbnail ? <img src={l.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-muted-foreground"><LayoutGrid className="size-4" /></div>}
                       </div>
-                      <span className="text-sm font-bold truncate flex-1">{l.name}</span>
-                      {active && <Check className="size-4 text-primary shrink-0" />}
+                      <span className="font-serif text-base truncate flex-1 text-champagne">{l.name}</span>
+                      {active && <Check className="size-4 text-gold shrink-0" />}
                     </button>
-                    <button onClick={() => onEdit(l)} className="p-1.5 rounded hover:bg-white opacity-0 group-hover:opacity-100" title="ערוך"><Pencil className="size-3.5 text-slate-500" /></button>
-                    <button onClick={() => onDelete(l)} className="p-1.5 rounded hover:bg-white opacity-0 group-hover:opacity-100" title="מחק"><Trash2 className="size-3.5 text-red-500" /></button>
+                    <button onClick={() => onEdit(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="ערוך"><Pencil className="size-3.5 text-gold-soft" /></button>
+                    <button onClick={() => onDelete(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="מחק"><Trash2 className="size-3.5 text-destructive" /></button>
                   </div>
                 );
               })}
             </>
           )}
 
-          <div className="mx-3 my-2 h-px bg-slate-100" />
-          <button onClick={() => { setOpen(false); onNew(); }} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 text-primary font-bold">
-            <div className="size-10 rounded-lg bg-primary/10 grid place-items-center shrink-0"><Plus className="size-5" /></div>
-            <div className="text-right"><div className="text-sm">בנה פריסה חדשה</div><div className="text-xs text-slate-500">עורך ויזואלי מלא</div></div>
+          <div className="mx-3 my-2 h-px bg-[oklch(0.76_0.13_85/0.15)]" />
+          <button onClick={() => { setOpen(false); onNew(); }} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[oklch(0.76_0.13_85/0.1)] text-gold">
+            <div className="size-10 rounded-lg grid place-items-center shrink-0 text-primary-foreground" style={{ background: "var(--gradient-gold)" }}><Plus className="size-5" /></div>
+            <div className="text-right"><div className="font-serif text-base text-champagne">בנה פריסה חדשה</div><div className="text-xs text-muted-foreground">עורך ויזואלי מלא</div></div>
           </button>
         </div>
       )}
-      <button onClick={() => setOpen((o) => !o)} className="size-14 rounded-full bg-primary text-primary-foreground shadow-2xl shadow-primary/30 grid place-items-center hover:scale-105 active:scale-95 transition-transform" aria-label="החלף פריסה">
+      <button onClick={() => setOpen((o) => !o)} className="size-14 rounded-full grid place-items-center hover:scale-105 active:scale-95 transition-transform text-primary-foreground" aria-label="החלף פריסה"
+              style={{ background: "var(--gradient-gold)", boxShadow: "var(--shadow-gold), inset 0 1px 0 oklch(1 0 0 / 0.3)" }}>
         <LayoutGrid className="size-6" />
       </button>
     </div>
