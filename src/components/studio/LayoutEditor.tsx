@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 import { toPng } from "html-to-image";
-import { X, Save, Undo2, Redo2, Copy, Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  X, Save, Undo2, Redo2, Copy, Trash2, Plus,
+  ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
+  Maximize2, Minus, Move, Target,
+  AlignHorizontalJustifyCenter, AlignVerticalJustifyCenter,
+  AlignHorizontalJustifyStart, AlignHorizontalJustifyEnd,
+  AlignVerticalJustifyStart, AlignVerticalJustifyEnd,
+  Layers, Grid3x3, ArrowUp, ArrowDown,
+} from "lucide-react";
 import { BlockContent, BLOCK_LIBRARY, defaultSpec, type Block, type BlockType, type LayoutSpec } from "./BlockRenderer";
 import type { Theme } from "./shared";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,10 +37,10 @@ function reducer(state: State, action: Action): State {
 }
 
 const BG_OPTIONS = [
-  { label: "בהיר", value: "bg-slate-50" },
-  { label: "גרדיאנט אינדיגו", value: "bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50" },
-  { label: "כהה", value: "bg-slate-950" },
-  { label: "רשת כהה", value: "bg-slate-950 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:32px_32px]" },
+  { label: "שמפניה", value: "bg-[oklch(0.96_0.015_85)]" },
+  { label: "אובסידיאן", value: "bg-[oklch(0.14_0.006_60)]" },
+  { label: "אוניקס עמוק", value: "bg-[oklch(0.11_0.005_60)] [background-image:radial-gradient(ellipse_at_top,oklch(0.22_0.008_60),oklch(0.11_0.005_60)_70%)]" },
+  { label: "רשת זהב", value: "bg-[oklch(0.14_0.006_60)] [background-image:linear-gradient(oklch(0.76_0.13_85/0.06)_1px,transparent_1px),linear-gradient(90deg,oklch(0.76_0.13_85/0.06)_1px,transparent_1px)] [background-size:32px_32px]" },
   { label: "לבן", value: "bg-white" },
 ];
 
