@@ -65,7 +65,7 @@ export function recognize(
   const len = pathLen(pts);
   const first = pts[0], last = pts[pts.length - 1];
   const endGap = dist(first, last);
-  const closed = endGap / diag < 0.25;
+  const closed = endGap / diag < 0.35;
 
   // Straightness: perimeter of a line = 2 * endpoint distance? No — straightness = endpoint distance / path length.
   const straightness = dist(first, last) / (len || 1);
@@ -75,19 +75,34 @@ export function recognize(
   const corners = closed ? simplified.length - 1 : simplified.length;
 
   // LINE / ARROW
-  if (!closed && straightness > 0.9) {
-    // Detect arrowhead: last ~15% of path deviates sharply
-    const tailStart = pts[Math.floor(pts.length * 0.85)];
+  if (!closed && straightness > 0.75) {
+    // Find the shaft: strip a short arrowhead tail so the line snaps to the intended endpoint.
+    // Walk back from the end while direction stays consistent with overall.
     const dirMain = Math.atan2(last.y - first.y, last.x - first.x);
-    const dirTail = Math.atan2(last.y - tailStart.y, last.x - tailStart.x);
-    const delta = Math.abs(((dirMain - dirTail + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
-    if (delta > 0.4 && delta < 1.4) {
+    let shaftEndIdx = pts.length - 1;
+    for (let i = pts.length - 2; i > pts.length * 0.6; i--) {
+      const d = Math.atan2(pts[i + 1].y - pts[i].y, pts[i + 1].x - pts[i].x);
+      const diff = Math.abs(((d - dirMain + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+      if (diff < 0.5) { shaftEndIdx = i + 1; break; }
+    }
+    const shaftEnd = pts[shaftEndIdx];
+    // Arrowhead heuristic: any late segment deviates strongly from main direction
+    let maxDelta = 0;
+    for (let i = Math.floor(pts.length * 0.7); i < pts.length - 1; i++) {
+      const d = Math.atan2(pts[i + 1].y - pts[i].y, pts[i + 1].x - pts[i].x);
+      const diff = Math.abs(((d - dirMain + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+      if (diff > maxDelta) maxDelta = diff;
+    }
+    if (maxDelta > 0.6) {
       return { id, kind: "arrow", x1: first.x, y1: first.y, x2: last.x, y2: last.y, color, width };
     }
-    return { id, kind: "line", x1: first.x, y1: first.y, x2: last.x, y2: last.y, color, width };
+    return { id, kind: "line", x1: first.x, y1: first.y, x2: shaftEnd.x, y2: shaftEnd.y, color, width };
   }
 
-  if (!closed) return stroke;
+  // Loose fallback: mostly-straight open stroke → line
+  if (!closed && straightness > 0.6) {
+    return { id, kind: "line", x1: first.x, y1: first.y, x2: last.x, y2: last.y, color, width };
+  }
 
   // CIRCLE: radii around centroid have low variance, and aspect ratio ~1
   const c = centroid(pts);
@@ -96,12 +111,12 @@ export function recognize(
   const varR = radii.reduce((a, b) => a + (b - meanR) ** 2, 0) / radii.length;
   const cv = Math.sqrt(varR) / (meanR || 1);
   const aspect = bb.w / (bb.h || 1);
-  if (cv < 0.22 && aspect > 0.7 && aspect < 1.4 && corners >= 5) {
+  if (cv < 0.35 && aspect > 0.6 && aspect < 1.7) {
     return { id, kind: "circle", cx: c.x, cy: c.y, r: meanR, color, width };
   }
 
   // RECTANGLE: 4 corners (5 with closing), reasonable fill of bbox
-  if (corners === 4) {
+  if (corners === 4 || corners === 5) {
     return { id, kind: "rect", x: bb.minX, y: bb.minY, w: bb.w, h: bb.h, color, width };
   }
 
@@ -110,6 +125,11 @@ export function recognize(
     // Use the 3 most distant simplified points
     const s = simplified.slice(0, 3) as [Pt, Pt, Pt];
     return { id, kind: "triangle", points: s, color, width };
+  }
+
+  // Closed fallback → treat as circle around centroid
+  if (closed) {
+    return { id, kind: "circle", cx: c.x, cy: c.y, r: meanR, color, width };
   }
 
   return stroke;
