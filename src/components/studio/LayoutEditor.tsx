@@ -105,6 +105,55 @@ export function LayoutEditor({
     setSelectedId(nid);
   };
 
+  // Nudge / resize helpers used by joystick + keyboard
+  const clampBlock = (b: Block, patch: Partial<Block>): Partial<Block> => {
+    const w = Math.max(1, Math.min(patch.w ?? b.w, spec.grid.cols));
+    const h = Math.max(1, Math.min(patch.h ?? b.h, spec.grid.rows));
+    const x = Math.max(0, Math.min(patch.x ?? b.x, spec.grid.cols - w));
+    const y = Math.max(0, Math.min(patch.y ?? b.y, spec.grid.rows - h));
+    return { x, y, w, h };
+  };
+  const nudge = (dx: number, dy: number) => {
+    if (!selected) return;
+    updateBlock(selected.id, clampBlock(selected, { x: selected.x + dx, y: selected.y + dy }));
+  };
+  const resizeBy = (dw: number, dh: number) => {
+    if (!selected) return;
+    updateBlock(selected.id, clampBlock(selected, { w: selected.w + dw, h: selected.h + dh }));
+  };
+  const alignBlock = (dir: "left" | "right" | "top" | "bottom" | "centerX" | "centerY" | "fill") => {
+    if (!selected) return;
+    const b = selected;
+    let patch: Partial<Block> = {};
+    if (dir === "left") patch = { x: 0 };
+    if (dir === "right") patch = { x: spec.grid.cols - b.w };
+    if (dir === "top") patch = { y: 0 };
+    if (dir === "bottom") patch = { y: spec.grid.rows - b.h };
+    if (dir === "centerX") patch = { x: Math.round((spec.grid.cols - b.w) / 2) };
+    if (dir === "centerY") patch = { y: Math.round((spec.grid.rows - b.h) / 2) };
+    if (dir === "fill") patch = { x: 0, y: 0, w: spec.grid.cols, h: spec.grid.rows };
+    updateBlock(b.id, clampBlock(b, patch));
+  };
+
+  // Keyboard shortcuts: arrows nudge, shift+arrows resize, cmd+d duplicate, del removes
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); dispatch({ type: e.shiftKey ? "redo" : "undo" }); return; }
+      if (!selected) return;
+      const step = e.altKey ? 2 : 1;
+      if (e.key === "ArrowLeft") { e.preventDefault(); e.shiftKey ? resizeBy(-step, 0) : nudge(-step, 0); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); e.shiftKey ? resizeBy(step, 0) : nudge(step, 0); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); e.shiftKey ? resizeBy(0, -step) : nudge(0, -step); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); e.shiftKey ? resizeBy(0, step) : nudge(0, step); }
+      else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); removeBlock(selected.id); }
+      else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") { e.preventDefault(); duplicateBlock(selected.id); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   const gap = 12;
   const pxToGrid = (px: number, size: number) => Math.round(px / (size + gap));
   const gridToPx = (g: number, size: number) => g * (size + gap);
