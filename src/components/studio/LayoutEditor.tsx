@@ -226,6 +226,18 @@ export function LayoutEditor({
               </button>
             ))}
           </div>
+
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-1 flex items-center gap-1"><Grid3x3 className="size-3" /> רשת</h3>
+          <div className="space-y-2 px-1">
+            <div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1"><span>עמודות</span><span className="font-mono font-bold text-slate-700">{spec.grid.cols}</span></div>
+              <input type="range" min={4} max={16} value={spec.grid.cols} onChange={(e) => setSpec({ ...spec, grid: { ...spec.grid, cols: Number(e.target.value) } })} className="w-full accent-primary" />
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1"><span>שורות</span><span className="font-mono font-bold text-slate-700">{spec.grid.rows}</span></div>
+              <input type="range" min={3} max={12} value={spec.grid.rows} onChange={(e) => setSpec({ ...spec, grid: { ...spec.grid, rows: Number(e.target.value) } })} className="w-full accent-primary" />
+            </div>
+          </div>
         </aside>
 
         {/* Canvas */}
