@@ -348,26 +348,79 @@ export function LayoutEditor({
                 </div>
               )}
 
+              {/* Joystick — nudge position */}
               <div>
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">מיקום וגודל</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"><Move className="size-3" /> ג'ויסטיק</label>
+                <div className="mt-2 mx-auto grid grid-cols-3 grid-rows-3 gap-1 w-36 h-36 p-2 rounded-2xl"
+                     style={{ background: "linear-gradient(180deg, oklch(0.19 0.006 60), oklch(0.14 0.006 60))", boxShadow: "inset 0 2px 8px rgba(0,0,0,0.5), 0 0 0 1px oklch(0.76 0.13 85 / 0.3)" }}>
+                  <div />
+                  <button onClick={() => nudge(0, -1)} className="rounded-lg grid place-items-center text-champagne hover:text-[oklch(0.14_0.006_60)] hover:bg-gold active:scale-95 transition-all" title="למעלה (↑)"><ChevronUp className="size-5" /></button>
+                  <div />
+                  <button onClick={() => nudge(-1, 0)} className="rounded-lg grid place-items-center text-champagne hover:text-[oklch(0.14_0.006_60)] hover:bg-gold active:scale-95 transition-all" title="שמאלה (←)"><ChevronLeft className="size-5" /></button>
+                  <button onClick={() => alignBlock("centerX")} onDoubleClick={() => alignBlock("centerY")} className="rounded-lg grid place-items-center text-gold hover:text-[oklch(0.14_0.006_60)] hover:bg-gold active:scale-95 transition-all" title="מרכז אופקי (דאבל: אנכי)"><Target className="size-4" /></button>
+                  <button onClick={() => nudge(1, 0)} className="rounded-lg grid place-items-center text-champagne hover:text-[oklch(0.14_0.006_60)] hover:bg-gold active:scale-95 transition-all" title="ימינה (→)"><ChevronRight className="size-5" /></button>
+                  <div />
+                  <button onClick={() => nudge(0, 1)} className="rounded-lg grid place-items-center text-champagne hover:text-[oklch(0.14_0.006_60)] hover:bg-gold active:scale-95 transition-all" title="למטה (↓)"><ChevronDown className="size-5" /></button>
+                  <div />
+                </div>
+                <div className="text-[10px] text-slate-400 text-center mt-1">חצים במקלדת = הזזה · Shift+חצים = שינוי גודל</div>
+              </div>
+
+              {/* Resize pad */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1"><Maximize2 className="size-3" /> גודל</label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="rounded-lg border border-slate-200 p-1 flex items-center justify-between">
+                    <button onClick={() => resizeBy(-1, 0)} className="p-1 rounded hover:bg-slate-100 text-slate-600" title="הקטן רוחב"><Minus className="size-4" /></button>
+                    <span className="font-mono text-xs font-bold">W {selected.w}</span>
+                    <button onClick={() => resizeBy(1, 0)} className="p-1 rounded hover:bg-slate-100 text-slate-600" title="הגדל רוחב"><Plus className="size-4" /></button>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-1 flex items-center justify-between">
+                    <button onClick={() => resizeBy(0, -1)} className="p-1 rounded hover:bg-slate-100 text-slate-600" title="הקטן גובה"><Minus className="size-4" /></button>
+                    <span className="font-mono text-xs font-bold">H {selected.h}</span>
+                    <button onClick={() => resizeBy(0, 1)} className="p-1 rounded hover:bg-slate-100 text-slate-600" title="הגדל גובה"><Plus className="size-4" /></button>
+                  </div>
+                </div>
+                <button onClick={() => alignBlock("fill")} className="mt-2 w-full py-2 rounded-lg bg-slate-100 hover:bg-gold hover:text-[oklch(0.14_0.006_60)] text-xs font-bold transition-colors flex items-center justify-center gap-1">
+                  <Maximize2 className="size-3" /> מלא מסך
+                </button>
+              </div>
+
+              {/* Align */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">יישור</label>
+                <div className="grid grid-cols-3 gap-1 mt-2">
+                  <button onClick={() => alignBlock("right")} className="p-2 rounded-lg border border-slate-200 hover:border-gold hover:bg-gold/10" title="לימין"><AlignHorizontalJustifyEnd className="size-4 mx-auto" /></button>
+                  <button onClick={() => alignBlock("centerX")} className="p-2 rounded-lg border border-slate-200 hover:border-gold hover:bg-gold/10" title="מרכז אופקי"><AlignHorizontalJustifyCenter className="size-4 mx-auto" /></button>
+                  <button onClick={() => alignBlock("left")} className="p-2 rounded-lg border border-slate-200 hover:border-gold hover:bg-gold/10" title="לשמאל"><AlignHorizontalJustifyStart className="size-4 mx-auto" /></button>
+                  <button onClick={() => alignBlock("top")} className="p-2 rounded-lg border border-slate-200 hover:border-gold hover:bg-gold/10" title="למעלה"><AlignVerticalJustifyStart className="size-4 mx-auto" /></button>
+                  <button onClick={() => alignBlock("centerY")} className="p-2 rounded-lg border border-slate-200 hover:border-gold hover:bg-gold/10" title="מרכז אנכי"><AlignVerticalJustifyCenter className="size-4 mx-auto" /></button>
+                  <button onClick={() => alignBlock("bottom")} className="p-2 rounded-lg border border-slate-200 hover:border-gold hover:bg-gold/10" title="למטה"><AlignVerticalJustifyEnd className="size-4 mx-auto" /></button>
+                </div>
+              </div>
+
+              {/* Numeric readout */}
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">מיקום מדויק</label>
                 <div className="grid grid-cols-4 gap-1 mt-1 text-xs">
                   {(["x", "y", "w", "h"] as const).map((k) => (
                     <div key={k}>
                       <div className="text-slate-400 text-center">{k.toUpperCase()}</div>
                       <input type="number" value={selected[k]} min={k === "w" || k === "h" ? 1 : 0}
                         max={k === "x" ? spec.grid.cols - selected.w : k === "y" ? spec.grid.rows - selected.h : k === "w" ? spec.grid.cols : spec.grid.rows}
-                        onChange={(e) => updateBlock(selected.id, { [k]: Math.max(0, Number(e.target.value)) } as Partial<Block>)}
-                        className="w-full px-2 py-1 border border-slate-200 rounded text-center" />
+                        onChange={(e) => updateBlock(selected.id, clampBlock(selected, { [k]: Math.max(0, Number(e.target.value)) }))}
+                        className="w-full px-2 py-1 border border-slate-200 rounded text-center font-mono" />
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex gap-1 pt-2 border-t border-slate-100">
-                <button onClick={() => updateBlock(selected.id, { z: (selected.z ?? 1) + 1 })} className="flex-1 p-2 rounded-lg hover:bg-slate-100" title="חזית"><ArrowUp className="size-4 mx-auto" /></button>
-                <button onClick={() => updateBlock(selected.id, { z: Math.max(0, (selected.z ?? 1) - 1) })} className="flex-1 p-2 rounded-lg hover:bg-slate-100" title="רקע"><ArrowDown className="size-4 mx-auto" /></button>
-                <button onClick={() => duplicateBlock(selected.id)} className="flex-1 p-2 rounded-lg hover:bg-slate-100" title="שכפל"><Copy className="size-4 mx-auto" /></button>
-                <button onClick={() => removeBlock(selected.id)} className="flex-1 p-2 rounded-lg hover:bg-red-50 text-red-500" title="מחק"><Trash2 className="size-4 mx-auto" /></button>
+              {/* Actions */}
+              <div className="flex gap-1 pt-3 border-t border-slate-100">
+                <button onClick={() => updateBlock(selected.id, { z: (selected.z ?? 1) + 1 })} className="flex-1 p-2 rounded-lg hover:bg-slate-100" title="שלח לחזית"><Layers className="size-4 mx-auto" /></button>
+                <button onClick={() => updateBlock(selected.id, { z: Math.max(0, (selected.z ?? 1) - 1) })} className="flex-1 p-2 rounded-lg hover:bg-slate-100" title="שלח לרקע"><ArrowDown className="size-4 mx-auto" /></button>
+                <button onClick={() => duplicateBlock(selected.id)} className="flex-1 p-2 rounded-lg hover:bg-slate-100" title="שכפל (⌘D)"><Copy className="size-4 mx-auto" /></button>
+                <button onClick={() => removeBlock(selected.id)} className="flex-1 p-2 rounded-lg hover:bg-red-50 text-red-500" title="מחק (Del)"><Trash2 className="size-4 mx-auto" /></button>
               </div>
             </div>
           )}
