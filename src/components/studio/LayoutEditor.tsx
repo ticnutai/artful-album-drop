@@ -256,6 +256,55 @@ export function LayoutEditor({
   const pxToGrid = (px: number, size: number) => Math.round(px / (size + gap));
   const gridToPx = (g: number, size: number) => g * (size + gap);
 
+  // Smart snapping: compute guide lines against other blocks + canvas edges/centers
+  const canvasPxSize = () => ({
+    w: spec.grid.cols * cellSize.w + (spec.grid.cols - 1) * gap,
+    h: spec.grid.rows * cellSize.h + (spec.grid.rows - 1) * gap,
+  });
+  const collectTargets = (ignoreId: string) => {
+    const cs = canvasPxSize();
+    const v: number[] = [0, cs.w / 2, cs.w];
+    const h: number[] = [0, cs.h / 2, cs.h];
+    spec.blocks.forEach((b) => {
+      if (b.id === ignoreId) return;
+      const x1 = gridToPx(b.x, cellSize.w);
+      const x2 = x1 + gridToPx(b.w, cellSize.w) - gap;
+      const y1 = gridToPx(b.y, cellSize.h);
+      const y2 = y1 + gridToPx(b.h, cellSize.h) - gap;
+      v.push(x1, x2, (x1 + x2) / 2);
+      h.push(y1, y2, (y1 + y2) / 2);
+    });
+    return { v, h };
+  };
+  const nearest = (val: number, list: number[]) => {
+    let best = { d: Infinity, val };
+    for (const t of list) { const d = Math.abs(t - val); if (d < best.d) best = { d, val: t }; }
+    return best;
+  };
+  const snapEdges = (
+    ignoreId: string,
+    rect: { x: number; y: number; w: number; h: number },
+    edges: { left?: boolean; right?: boolean; top?: boolean; bottom?: boolean; centerX?: boolean; centerY?: boolean },
+  ) => {
+    const gV: number[] = []; const gH: number[] = [];
+    if (snapPx <= 0) return { dx: 0, dy: 0, gV, gH };
+    const { v, h } = collectTargets(ignoreId);
+    const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
+    const candsX: { d: number; delta: number; line: number }[] = [];
+    if (edges.left) { const n = nearest(rect.x, v); candsX.push({ d: n.d, delta: n.val - rect.x, line: n.val }); }
+    if (edges.right) { const n = nearest(rect.x + rect.w, v); candsX.push({ d: n.d, delta: n.val - (rect.x + rect.w), line: n.val }); }
+    if (edges.centerX) { const n = nearest(cx, v); candsX.push({ d: n.d, delta: n.val - cx, line: n.val }); }
+    const bestX = candsX.filter((c) => c.d <= snapPx).sort((a, b) => a.d - b.d)[0];
+    const candsY: { d: number; delta: number; line: number }[] = [];
+    if (edges.top) { const n = nearest(rect.y, h); candsY.push({ d: n.d, delta: n.val - rect.y, line: n.val }); }
+    if (edges.bottom) { const n = nearest(rect.y + rect.h, h); candsY.push({ d: n.d, delta: n.val - (rect.y + rect.h), line: n.val }); }
+    if (edges.centerY) { const n = nearest(cy, h); candsY.push({ d: n.d, delta: n.val - cy, line: n.val }); }
+    const bestY = candsY.filter((c) => c.d <= snapPx).sort((a, b) => a.d - b.d)[0];
+    if (bestX) gV.push(bestX.line);
+    if (bestY) gH.push(bestY.line);
+    return { dx: bestX?.delta ?? 0, dy: bestY?.delta ?? 0, gV, gH };
+  };
+
   const save = async () => {
     setSaving(true);
     try {
