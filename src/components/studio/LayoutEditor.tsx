@@ -372,6 +372,17 @@ export function LayoutEditor({
         >
           <Magnet className="size-3.5" /> הצמדה · {SNAP_LEVELS[snapLevel].label}
         </button>
+        <button
+          onClick={() => setPrecisionIdx((i) => (i + 1) % PRECISION_LEVELS.length)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+            subdiv > 1
+              ? "bg-fuchsia-100 border-fuchsia-300 text-fuchsia-700"
+              : "bg-slate-50 border-slate-200 text-slate-500"
+          }`}
+          title="דיוק תזוזה — הקטן את קפיצות התזוזה"
+        >
+          <Target className="size-3.5" /> דיוק · {PRECISION_LEVELS[precisionIdx].label}
+        </button>
         <button onClick={save} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 disabled:opacity-50">
           <Save className="size-4" /> {saving ? "שומר…" : "שמור פריסה"}
         </button>
