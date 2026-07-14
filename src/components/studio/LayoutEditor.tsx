@@ -143,6 +143,17 @@ export function LayoutEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const [cellSize, setCellSize] = useState({ w: 80, h: 80 });
 
+  // Snap sensitivity (0=off). Cycles through low/med/high. Threshold in px.
+  const SNAP_LEVELS = [
+    { key: 0, label: "כבוי", px: 0 },
+    { key: 1, label: "עדין", px: 4 },
+    { key: 2, label: "רגיל", px: 8 },
+    { key: 3, label: "חזק", px: 16 },
+  ] as const;
+  const [snapLevel, setSnapLevel] = useState<number>(2);
+  const snapPx = SNAP_LEVELS[snapLevel].px;
+  const [guides, setGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
+
   const spec = state.spec;
   const selected = selectedId ? spec.blocks.find((b) => b.id === selectedId) : null;
 
