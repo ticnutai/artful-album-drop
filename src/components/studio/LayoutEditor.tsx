@@ -292,6 +292,28 @@ export function LayoutEditor({
       <div className="flex-1 flex overflow-hidden">
         {/* Component palette */}
         <aside className="w-56 bg-white border-l border-slate-200 overflow-y-auto p-3 shrink-0">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-1 flex items-center gap-1"><Layers className="size-3" /> תבניות מוכנות</h3>
+          <div className="space-y-1.5 mb-4">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => {
+                  dispatch({ type: "set", spec: t.build() });
+                  setSelectedId(null);
+                  toast.success(`הופעל: ${t.label}`);
+                }}
+                className="w-full flex items-center gap-2 p-2 border border-slate-200 rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-right"
+              >
+                <span className="text-xl leading-none w-7 h-7 grid place-items-center bg-slate-100 rounded-lg shrink-0">{t.icon}</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[12px] font-bold text-slate-800 truncate">{t.label}</span>
+                  <span className="block text-[10px] text-slate-500 truncate">{t.description}</span>
+                </span>
+                <span className="text-[10px] font-bold text-primary shrink-0">החל</span>
+              </button>
+            ))}
+          </div>
+
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-1">רכיבים</h3>
           <div className="grid grid-cols-2 gap-2">
             {BLOCK_LIBRARY.map((lib) => (
