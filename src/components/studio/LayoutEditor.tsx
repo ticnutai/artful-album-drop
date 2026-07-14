@@ -466,8 +466,8 @@ export function LayoutEditor({
                       const width = gridToPx(b.w, cellSize.w) - gap;
                       const height = gridToPx(b.h, cellSize.h) - gap;
                       const s = snapEdges(b.id, { x: d.x, y: d.y, w: width, h: height }, { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true });
-                      const x = Math.max(0, Math.min(pxToGrid(d.x + s.dx, cellSize.w), spec.grid.cols - b.w));
-                      const y = Math.max(0, Math.min(pxToGrid(d.y + s.dy, cellSize.h), spec.grid.rows - b.h));
+                      const x = Math.max(0, Math.min(pxToFine(d.x + s.dx, cellSize.w), spec.grid.cols - b.w));
+                      const y = Math.max(0, Math.min(pxToFine(d.y + s.dy, cellSize.h), spec.grid.rows - b.h));
                       setGuides({ v: [], h: [] });
                       updateBlock(b.id, { x, y });
                     }}
@@ -496,10 +496,10 @@ export function LayoutEditor({
                       else if (edges.right) { nw += s.dx; }
                       if (edges.top) { ny += s.dy; nh -= s.dy; }
                       else if (edges.bottom) { nh += s.dy; }
-                      const w = Math.max(1, Math.min(pxToGrid(nw + gap, cellSize.w), spec.grid.cols));
-                      const h = Math.max(1, Math.min(pxToGrid(nh + gap, cellSize.h), spec.grid.rows));
-                      const x = Math.max(0, Math.min(pxToGrid(nx, cellSize.w), spec.grid.cols - w));
-                      const y = Math.max(0, Math.min(pxToGrid(ny, cellSize.h), spec.grid.rows - h));
+                      const w = Math.max(1 / subdiv, Math.min(pxToFine(nw + gap, cellSize.w), spec.grid.cols));
+                      const h = Math.max(1 / subdiv, Math.min(pxToFine(nh + gap, cellSize.h), spec.grid.rows));
+                      const x = Math.max(0, Math.min(pxToFine(nx, cellSize.w), spec.grid.cols - w));
+                      const y = Math.max(0, Math.min(pxToFine(ny, cellSize.h), spec.grid.rows - h));
                       setGuides({ v: [], h: [] });
                       updateBlock(b.id, { w, h, x, y });
                     }}
