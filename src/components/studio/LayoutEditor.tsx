@@ -154,6 +154,18 @@ export function LayoutEditor({
   const snapPx = SNAP_LEVELS[snapLevel].px;
   const [guides, setGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
 
+  // Precision: subdivisions per grid cell. 1 = grid only, higher = finer movement.
+  const PRECISION_LEVELS = [
+    { key: 1, label: "רשת" },
+    { key: 2, label: "½" },
+    { key: 4, label: "¼" },
+    { key: 10, label: "עדין" },
+    { key: 20, label: "מדויק" },
+  ] as const;
+  const [precisionIdx, setPrecisionIdx] = useState<number>(0);
+  const subdiv = PRECISION_LEVELS[precisionIdx].key;
+  const roundFine = (g: number) => Math.round(g * subdiv) / subdiv;
+
   const spec = state.spec;
   const selected = selectedId ? spec.blocks.find((b) => b.id === selectedId) : null;
 
@@ -240,7 +252,9 @@ export function LayoutEditor({
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); dispatch({ type: e.shiftKey ? "redo" : "undo" }); return; }
       if (!selected) return;
-      const step = e.altKey ? 2 : 1;
+      // Fine step matches precision level; Alt = 2× jump; Shift keeps grid steps for resize predictability
+      const fine = 1 / subdiv;
+      const step = e.altKey ? fine * 2 : fine;
       if (e.key === "ArrowLeft") { e.preventDefault(); e.shiftKey ? resizeBy(-step, 0) : nudge(-step, 0); }
       else if (e.key === "ArrowRight") { e.preventDefault(); e.shiftKey ? resizeBy(step, 0) : nudge(step, 0); }
       else if (e.key === "ArrowUp") { e.preventDefault(); e.shiftKey ? resizeBy(0, -step) : nudge(0, -step); }
@@ -254,6 +268,8 @@ export function LayoutEditor({
 
   const gap = 12;
   const pxToGrid = (px: number, size: number) => Math.round(px / (size + gap));
+  // Fractional grid units based on current precision (subdiv)
+  const pxToFine = (px: number, size: number) => Math.round((px / (size + gap)) * subdiv) / subdiv;
   const gridToPx = (g: number, size: number) => g * (size + gap);
 
   // Smart snapping: compute guide lines against other blocks + canvas edges/centers
@@ -356,6 +372,17 @@ export function LayoutEditor({
         >
           <Magnet className="size-3.5" /> הצמדה · {SNAP_LEVELS[snapLevel].label}
         </button>
+        <button
+          onClick={() => setPrecisionIdx((i) => (i + 1) % PRECISION_LEVELS.length)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+            subdiv > 1
+              ? "bg-fuchsia-100 border-fuchsia-300 text-fuchsia-700"
+              : "bg-slate-50 border-slate-200 text-slate-500"
+          }`}
+          title="דיוק תזוזה — הקטן את קפיצות התזוזה"
+        >
+          <Target className="size-3.5" /> דיוק · {PRECISION_LEVELS[precisionIdx].label}
+        </button>
         <button onClick={save} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 disabled:opacity-50">
           <Save className="size-4" /> {saving ? "שומר…" : "שמור פריסה"}
         </button>
@@ -450,8 +477,8 @@ export function LayoutEditor({
                       const width = gridToPx(b.w, cellSize.w) - gap;
                       const height = gridToPx(b.h, cellSize.h) - gap;
                       const s = snapEdges(b.id, { x: d.x, y: d.y, w: width, h: height }, { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true });
-                      const x = Math.max(0, Math.min(pxToGrid(d.x + s.dx, cellSize.w), spec.grid.cols - b.w));
-                      const y = Math.max(0, Math.min(pxToGrid(d.y + s.dy, cellSize.h), spec.grid.rows - b.h));
+                      const x = Math.max(0, Math.min(pxToFine(d.x + s.dx, cellSize.w), spec.grid.cols - b.w));
+                      const y = Math.max(0, Math.min(pxToFine(d.y + s.dy, cellSize.h), spec.grid.rows - b.h));
                       setGuides({ v: [], h: [] });
                       updateBlock(b.id, { x, y });
                     }}
@@ -480,10 +507,10 @@ export function LayoutEditor({
                       else if (edges.right) { nw += s.dx; }
                       if (edges.top) { ny += s.dy; nh -= s.dy; }
                       else if (edges.bottom) { nh += s.dy; }
-                      const w = Math.max(1, Math.min(pxToGrid(nw + gap, cellSize.w), spec.grid.cols));
-                      const h = Math.max(1, Math.min(pxToGrid(nh + gap, cellSize.h), spec.grid.rows));
-                      const x = Math.max(0, Math.min(pxToGrid(nx, cellSize.w), spec.grid.cols - w));
-                      const y = Math.max(0, Math.min(pxToGrid(ny, cellSize.h), spec.grid.rows - h));
+                      const w = Math.max(1 / subdiv, Math.min(pxToFine(nw + gap, cellSize.w), spec.grid.cols));
+                      const h = Math.max(1 / subdiv, Math.min(pxToFine(nh + gap, cellSize.h), spec.grid.rows));
+                      const x = Math.max(0, Math.min(pxToFine(nx, cellSize.w), spec.grid.cols - w));
+                      const y = Math.max(0, Math.min(pxToFine(ny, cellSize.h), spec.grid.rows - h));
                       setGuides({ v: [], h: [] });
                       updateBlock(b.id, { w, h, x, y });
                     }}
