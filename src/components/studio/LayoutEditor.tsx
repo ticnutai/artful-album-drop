@@ -252,7 +252,9 @@ export function LayoutEditor({
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") { e.preventDefault(); dispatch({ type: e.shiftKey ? "redo" : "undo" }); return; }
       if (!selected) return;
-      const step = e.altKey ? 2 : 1;
+      // Fine step matches precision level; Alt = 2× jump; Shift keeps grid steps for resize predictability
+      const fine = 1 / subdiv;
+      const step = e.altKey ? fine * 2 : fine;
       if (e.key === "ArrowLeft") { e.preventDefault(); e.shiftKey ? resizeBy(-step, 0) : nudge(-step, 0); }
       else if (e.key === "ArrowRight") { e.preventDefault(); e.shiftKey ? resizeBy(step, 0) : nudge(step, 0); }
       else if (e.key === "ArrowUp") { e.preventDefault(); e.shiftKey ? resizeBy(0, -step) : nudge(0, -step); }
