@@ -44,6 +44,92 @@ const BG_OPTIONS = [
   { label: "לבן", value: "bg-white" },
 ];
 
+// Ready-to-apply layout presets
+const TEMPLATES: { key: string; label: string; description: string; icon: string; build: () => LayoutSpec }[] = [
+  {
+    key: "three-floors",
+    label: "3 קומות",
+    description: "כותרת · תוכן · פעולות",
+    icon: "▤",
+    build: () => ({
+      grid: { cols: 12, rows: 8 },
+      background: BG_OPTIONS[0].value,
+      blocks: [
+        { id: "t1", type: "title", x: 0, y: 0, w: 8, h: 1, props: { theme: "light", text: "שיתוף מסך" } },
+        { id: "t2", type: "clock", x: 8, y: 0, w: 2, h: 1, props: { theme: "light" } },
+        { id: "t3", type: "roomCode", x: 10, y: 0, w: 2, h: 1, props: { theme: "light" } },
+        { id: "t4", type: "canvas", x: 0, y: 1, w: 12, h: 6, props: { theme: "light" } },
+        { id: "t5", type: "toolbar", x: 0, y: 7, w: 8, h: 1, props: { theme: "light" } },
+        { id: "t6", type: "action", x: 8, y: 7, w: 2, h: 1, props: { theme: "light", text: "הזמן" } },
+        { id: "t7", type: "quality", x: 10, y: 7, w: 2, h: 1, props: { theme: "light" } },
+      ],
+    }),
+  },
+  {
+    key: "grid-2x2",
+    label: "רשת 2×2",
+    description: "ארבעה חלונות שווים",
+    icon: "▦",
+    build: () => ({
+      grid: { cols: 12, rows: 8 },
+      background: BG_OPTIONS[3].value,
+      blocks: [
+        { id: "g1", type: "canvas", x: 0, y: 0, w: 6, h: 4, props: { theme: "dark" } },
+        { id: "g2", type: "canvas", x: 6, y: 0, w: 6, h: 4, props: { theme: "dark" } },
+        { id: "g3", type: "participants", x: 0, y: 4, w: 6, h: 4, props: { theme: "dark", variant: "avatars" } },
+        { id: "g4", type: "canvas", x: 6, y: 4, w: 6, h: 4, props: { theme: "dark" } },
+      ],
+    }),
+  },
+  {
+    key: "top-header",
+    label: "כותרת עליונה",
+    description: "שורת סטטוס + במה מלאה",
+    icon: "▔",
+    build: () => ({
+      grid: { cols: 12, rows: 8 },
+      background: BG_OPTIONS[2].value,
+      blocks: [
+        { id: "h1", type: "clock", x: 0, y: 0, w: 2, h: 1, props: { theme: "dark" } },
+        { id: "h2", type: "title", x: 2, y: 0, w: 6, h: 1, props: { theme: "dark", text: "שיתוף מסך · חי" } },
+        { id: "h3", type: "quality", x: 8, y: 0, w: 2, h: 1, props: { theme: "dark" } },
+        { id: "h4", type: "roomCode", x: 10, y: 0, w: 2, h: 1, props: { theme: "dark" } },
+        { id: "h5", type: "canvas", x: 0, y: 1, w: 12, h: 7, props: { theme: "dark" } },
+      ],
+    }),
+  },
+  {
+    key: "presenter",
+    label: "מציג + משתתפים",
+    description: "קנבס גדול וסייד־בר",
+    icon: "◧",
+    build: () => ({
+      grid: { cols: 12, rows: 8 },
+      background: BG_OPTIONS[0].value,
+      blocks: [
+        { id: "p1", type: "participants", x: 0, y: 0, w: 3, h: 7, props: { theme: "light", variant: "list" } },
+        { id: "p2", type: "canvas", x: 3, y: 0, w: 9, h: 7, props: { theme: "light" } },
+        { id: "p3", type: "toolbar", x: 3, y: 7, w: 7, h: 1, props: { theme: "light" } },
+        { id: "p4", type: "emoji", x: 10, y: 7, w: 2, h: 1, props: { theme: "light", orientation: "horizontal" } },
+      ],
+    }),
+  },
+  {
+    key: "focus",
+    label: "פוקוס נקי",
+    description: "רק קנבס וסרגל",
+    icon: "◻",
+    build: () => ({
+      grid: { cols: 12, rows: 8 },
+      background: BG_OPTIONS[4].value,
+      blocks: [
+        { id: "f1", type: "canvas", x: 0, y: 0, w: 12, h: 7, props: { theme: "light" } },
+        { id: "f2", type: "toolbar", x: 4, y: 7, w: 4, h: 1, props: { theme: "light" } },
+      ],
+    }),
+  },
+];
+
 export function LayoutEditor({
   initial, initialName, layoutId, onExit,
 }: {
