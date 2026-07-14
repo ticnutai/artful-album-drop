@@ -154,6 +154,18 @@ export function LayoutEditor({
   const snapPx = SNAP_LEVELS[snapLevel].px;
   const [guides, setGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
 
+  // Precision: subdivisions per grid cell. 1 = grid only, higher = finer movement.
+  const PRECISION_LEVELS = [
+    { key: 1, label: "רשת" },
+    { key: 2, label: "½" },
+    { key: 4, label: "¼" },
+    { key: 10, label: "עדין" },
+    { key: 20, label: "מדויק" },
+  ] as const;
+  const [precisionIdx, setPrecisionIdx] = useState<number>(0);
+  const subdiv = PRECISION_LEVELS[precisionIdx].key;
+  const roundFine = (g: number) => Math.round(g * subdiv) / subdiv;
+
   const spec = state.spec;
   const selected = selectedId ? spec.blocks.find((b) => b.id === selectedId) : null;
 
