@@ -9,6 +9,7 @@ import {
   AlignHorizontalJustifyStart, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyEnd,
   Layers, Grid3x3, ArrowUp, ArrowDown,
+  Magnet,
 } from "lucide-react";
 import { BlockContent, BLOCK_LIBRARY, defaultSpec, type Block, type BlockType, type LayoutSpec } from "./BlockRenderer";
 import type { Theme } from "./shared";
@@ -142,6 +143,17 @@ export function LayoutEditor({
   const canvasRef = useRef<HTMLDivElement>(null);
   const [cellSize, setCellSize] = useState({ w: 80, h: 80 });
 
+  // Snap sensitivity (0=off). Cycles through low/med/high. Threshold in px.
+  const SNAP_LEVELS = [
+    { key: 0, label: "כבוי", px: 0 },
+    { key: 1, label: "עדין", px: 4 },
+    { key: 2, label: "רגיל", px: 8 },
+    { key: 3, label: "חזק", px: 16 },
+  ] as const;
+  const [snapLevel, setSnapLevel] = useState<number>(2);
+  const snapPx = SNAP_LEVELS[snapLevel].px;
+  const [guides, setGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
+
   const spec = state.spec;
   const selected = selectedId ? spec.blocks.find((b) => b.id === selectedId) : null;
 
@@ -244,6 +256,55 @@ export function LayoutEditor({
   const pxToGrid = (px: number, size: number) => Math.round(px / (size + gap));
   const gridToPx = (g: number, size: number) => g * (size + gap);
 
+  // Smart snapping: compute guide lines against other blocks + canvas edges/centers
+  const canvasPxSize = () => ({
+    w: spec.grid.cols * cellSize.w + (spec.grid.cols - 1) * gap,
+    h: spec.grid.rows * cellSize.h + (spec.grid.rows - 1) * gap,
+  });
+  const collectTargets = (ignoreId: string) => {
+    const cs = canvasPxSize();
+    const v: number[] = [0, cs.w / 2, cs.w];
+    const h: number[] = [0, cs.h / 2, cs.h];
+    spec.blocks.forEach((b) => {
+      if (b.id === ignoreId) return;
+      const x1 = gridToPx(b.x, cellSize.w);
+      const x2 = x1 + gridToPx(b.w, cellSize.w) - gap;
+      const y1 = gridToPx(b.y, cellSize.h);
+      const y2 = y1 + gridToPx(b.h, cellSize.h) - gap;
+      v.push(x1, x2, (x1 + x2) / 2);
+      h.push(y1, y2, (y1 + y2) / 2);
+    });
+    return { v, h };
+  };
+  const nearest = (val: number, list: number[]) => {
+    let best = { d: Infinity, val };
+    for (const t of list) { const d = Math.abs(t - val); if (d < best.d) best = { d, val: t }; }
+    return best;
+  };
+  const snapEdges = (
+    ignoreId: string,
+    rect: { x: number; y: number; w: number; h: number },
+    edges: { left?: boolean; right?: boolean; top?: boolean; bottom?: boolean; centerX?: boolean; centerY?: boolean },
+  ) => {
+    const gV: number[] = []; const gH: number[] = [];
+    if (snapPx <= 0) return { dx: 0, dy: 0, gV, gH };
+    const { v, h } = collectTargets(ignoreId);
+    const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
+    const candsX: { d: number; delta: number; line: number }[] = [];
+    if (edges.left) { const n = nearest(rect.x, v); candsX.push({ d: n.d, delta: n.val - rect.x, line: n.val }); }
+    if (edges.right) { const n = nearest(rect.x + rect.w, v); candsX.push({ d: n.d, delta: n.val - (rect.x + rect.w), line: n.val }); }
+    if (edges.centerX) { const n = nearest(cx, v); candsX.push({ d: n.d, delta: n.val - cx, line: n.val }); }
+    const bestX = candsX.filter((c) => c.d <= snapPx).sort((a, b) => a.d - b.d)[0];
+    const candsY: { d: number; delta: number; line: number }[] = [];
+    if (edges.top) { const n = nearest(rect.y, h); candsY.push({ d: n.d, delta: n.val - rect.y, line: n.val }); }
+    if (edges.bottom) { const n = nearest(rect.y + rect.h, h); candsY.push({ d: n.d, delta: n.val - (rect.y + rect.h), line: n.val }); }
+    if (edges.centerY) { const n = nearest(cy, h); candsY.push({ d: n.d, delta: n.val - cy, line: n.val }); }
+    const bestY = candsY.filter((c) => c.d <= snapPx).sort((a, b) => a.d - b.d)[0];
+    if (bestX) gV.push(bestX.line);
+    if (bestY) gH.push(bestY.line);
+    return { dx: bestX?.delta ?? 0, dy: bestY?.delta ?? 0, gV, gH };
+  };
+
   const save = async () => {
     setSaving(true);
     try {
@@ -284,6 +345,17 @@ export function LayoutEditor({
           <button onClick={() => dispatch({ type: "redo" })} disabled={!state.future.length} className="p-2 hover:bg-slate-100 rounded-lg disabled:opacity-30" aria-label="חזור"><Redo2 className="size-4" /></button>
         </div>
         <div className="text-xs text-slate-500 mr-auto">{spec.blocks.length} רכיבים · רשת {spec.grid.cols}×{spec.grid.rows}</div>
+        <button
+          onClick={() => setSnapLevel((l) => (l + 1) % SNAP_LEVELS.length)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+            snapPx > 0
+              ? "bg-primary/10 border-primary/40 text-primary"
+              : "bg-slate-50 border-slate-200 text-slate-500"
+          }`}
+          title="רגישות הצמדה"
+        >
+          <Magnet className="size-3.5" /> הצמדה · {SNAP_LEVELS[snapLevel].label}
+        </button>
         <button onClick={save} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 disabled:opacity-50">
           <Save className="size-4" /> {saving ? "שומר…" : "שמור פריסה"}
         </button>
@@ -368,16 +440,51 @@ export function LayoutEditor({
                     size={{ width: gridToPx(b.w, cellSize.w) - gap, height: gridToPx(b.h, cellSize.h) - gap }}
                     position={{ x: gridToPx(b.x, cellSize.w), y: gridToPx(b.y, cellSize.h) }}
                     bounds="parent"
+                    onDrag={(_, d) => {
+                      const width = gridToPx(b.w, cellSize.w) - gap;
+                      const height = gridToPx(b.h, cellSize.h) - gap;
+                      const s = snapEdges(b.id, { x: d.x, y: d.y, w: width, h: height }, { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true });
+                      setGuides({ v: s.gV, h: s.gH });
+                    }}
                     onDragStop={(_, d) => {
-                      const x = Math.max(0, Math.min(pxToGrid(d.x, cellSize.w), spec.grid.cols - b.w));
-                      const y = Math.max(0, Math.min(pxToGrid(d.y, cellSize.h), spec.grid.rows - b.h));
+                      const width = gridToPx(b.w, cellSize.w) - gap;
+                      const height = gridToPx(b.h, cellSize.h) - gap;
+                      const s = snapEdges(b.id, { x: d.x, y: d.y, w: width, h: height }, { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true });
+                      const x = Math.max(0, Math.min(pxToGrid(d.x + s.dx, cellSize.w), spec.grid.cols - b.w));
+                      const y = Math.max(0, Math.min(pxToGrid(d.y + s.dy, cellSize.h), spec.grid.rows - b.h));
+                      setGuides({ v: [], h: [] });
                       updateBlock(b.id, { x, y });
                     }}
-                    onResizeStop={(_, __, ref, ___, pos) => {
-                      const w = Math.max(1, Math.min(pxToGrid(ref.offsetWidth + gap, cellSize.w), spec.grid.cols));
-                      const h = Math.max(1, Math.min(pxToGrid(ref.offsetHeight + gap, cellSize.h), spec.grid.rows));
-                      const x = Math.max(0, Math.min(pxToGrid(pos.x, cellSize.w), spec.grid.cols - w));
-                      const y = Math.max(0, Math.min(pxToGrid(pos.y, cellSize.h), spec.grid.rows - h));
+                    onResize={(_, dir, ref, __, pos) => {
+                      const edges = {
+                        left: /Left/i.test(dir) || dir === "left",
+                        right: /Right/i.test(dir) || dir === "right",
+                        top: /^top/i.test(dir) || dir === "top",
+                        bottom: /^bottom/i.test(dir) || dir === "bottom",
+                      };
+                      const s = snapEdges(b.id, { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight }, edges);
+                      setGuides({ v: s.gV, h: s.gH });
+                    }}
+                    onResizeStop={(_, dir, ref, ___, pos) => {
+                      const edges = {
+                        left: /Left/i.test(dir) || dir === "left",
+                        right: /Right/i.test(dir) || dir === "right",
+                        top: /^top/i.test(dir) || dir === "top",
+                        bottom: /^bottom/i.test(dir) || dir === "bottom",
+                      };
+                      const rect = { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight };
+                      const s = snapEdges(b.id, rect, edges);
+                      // Apply snap by shifting only the active edges
+                      let { x: nx, y: ny, w: nw, h: nh } = rect;
+                      if (edges.left) { nx += s.dx; nw -= s.dx; }
+                      else if (edges.right) { nw += s.dx; }
+                      if (edges.top) { ny += s.dy; nh -= s.dy; }
+                      else if (edges.bottom) { nh += s.dy; }
+                      const w = Math.max(1, Math.min(pxToGrid(nw + gap, cellSize.w), spec.grid.cols));
+                      const h = Math.max(1, Math.min(pxToGrid(nh + gap, cellSize.h), spec.grid.rows));
+                      const x = Math.max(0, Math.min(pxToGrid(nx, cellSize.w), spec.grid.cols - w));
+                      const y = Math.max(0, Math.min(pxToGrid(ny, cellSize.h), spec.grid.rows - h));
+                      setGuides({ v: [], h: [] });
                       updateBlock(b.id, { w, h, x, y });
                     }}
                     onMouseDown={() => setSelectedId(b.id)}
@@ -390,6 +497,13 @@ export function LayoutEditor({
                   </Rnd>
                 );
               })}
+              {/* Smart snap guide lines */}
+              {guides.v.map((x, i) => (
+                <div key={`gv${i}`} className="pointer-events-none absolute top-0 bottom-0 w-px bg-fuchsia-500 shadow-[0_0_6px_rgba(217,70,239,0.7)] z-[9999]" style={{ left: x }} />
+              ))}
+              {guides.h.map((y, i) => (
+                <div key={`gh${i}`} className="pointer-events-none absolute left-0 right-0 h-px bg-fuchsia-500 shadow-[0_0_6px_rgba(217,70,239,0.7)] z-[9999]" style={{ top: y }} />
+              ))}
             </div>
           </div>
         </main>
