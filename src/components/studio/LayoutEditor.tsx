@@ -440,16 +440,51 @@ export function LayoutEditor({
                     size={{ width: gridToPx(b.w, cellSize.w) - gap, height: gridToPx(b.h, cellSize.h) - gap }}
                     position={{ x: gridToPx(b.x, cellSize.w), y: gridToPx(b.y, cellSize.h) }}
                     bounds="parent"
+                    onDrag={(_, d) => {
+                      const width = gridToPx(b.w, cellSize.w) - gap;
+                      const height = gridToPx(b.h, cellSize.h) - gap;
+                      const s = snapEdges(b.id, { x: d.x, y: d.y, w: width, h: height }, { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true });
+                      setGuides({ v: s.gV, h: s.gH });
+                    }}
                     onDragStop={(_, d) => {
-                      const x = Math.max(0, Math.min(pxToGrid(d.x, cellSize.w), spec.grid.cols - b.w));
-                      const y = Math.max(0, Math.min(pxToGrid(d.y, cellSize.h), spec.grid.rows - b.h));
+                      const width = gridToPx(b.w, cellSize.w) - gap;
+                      const height = gridToPx(b.h, cellSize.h) - gap;
+                      const s = snapEdges(b.id, { x: d.x, y: d.y, w: width, h: height }, { left: true, right: true, top: true, bottom: true, centerX: true, centerY: true });
+                      const x = Math.max(0, Math.min(pxToGrid(d.x + s.dx, cellSize.w), spec.grid.cols - b.w));
+                      const y = Math.max(0, Math.min(pxToGrid(d.y + s.dy, cellSize.h), spec.grid.rows - b.h));
+                      setGuides({ v: [], h: [] });
                       updateBlock(b.id, { x, y });
                     }}
-                    onResizeStop={(_, __, ref, ___, pos) => {
-                      const w = Math.max(1, Math.min(pxToGrid(ref.offsetWidth + gap, cellSize.w), spec.grid.cols));
-                      const h = Math.max(1, Math.min(pxToGrid(ref.offsetHeight + gap, cellSize.h), spec.grid.rows));
-                      const x = Math.max(0, Math.min(pxToGrid(pos.x, cellSize.w), spec.grid.cols - w));
-                      const y = Math.max(0, Math.min(pxToGrid(pos.y, cellSize.h), spec.grid.rows - h));
+                    onResize={(_, dir, ref, __, pos) => {
+                      const edges = {
+                        left: /Left/i.test(dir) || dir === "left",
+                        right: /Right/i.test(dir) || dir === "right",
+                        top: /^top/i.test(dir) || dir === "top",
+                        bottom: /^bottom/i.test(dir) || dir === "bottom",
+                      };
+                      const s = snapEdges(b.id, { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight }, edges);
+                      setGuides({ v: s.gV, h: s.gH });
+                    }}
+                    onResizeStop={(_, dir, ref, ___, pos) => {
+                      const edges = {
+                        left: /Left/i.test(dir) || dir === "left",
+                        right: /Right/i.test(dir) || dir === "right",
+                        top: /^top/i.test(dir) || dir === "top",
+                        bottom: /^bottom/i.test(dir) || dir === "bottom",
+                      };
+                      const rect = { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight };
+                      const s = snapEdges(b.id, rect, edges);
+                      // Apply snap by shifting only the active edges
+                      let { x: nx, y: ny, w: nw, h: nh } = rect;
+                      if (edges.left) { nx += s.dx; nw -= s.dx; }
+                      else if (edges.right) { nw += s.dx; }
+                      if (edges.top) { ny += s.dy; nh -= s.dy; }
+                      else if (edges.bottom) { nh += s.dy; }
+                      const w = Math.max(1, Math.min(pxToGrid(nw + gap, cellSize.w), spec.grid.cols));
+                      const h = Math.max(1, Math.min(pxToGrid(nh + gap, cellSize.h), spec.grid.rows));
+                      const x = Math.max(0, Math.min(pxToGrid(nx, cellSize.w), spec.grid.cols - w));
+                      const y = Math.max(0, Math.min(pxToGrid(ny, cellSize.h), spec.grid.rows - h));
+                      setGuides({ v: [], h: [] });
                       updateBlock(b.id, { w, h, x, y });
                     }}
                     onMouseDown={() => setSelectedId(b.id)}
@@ -462,6 +497,13 @@ export function LayoutEditor({
                   </Rnd>
                 );
               })}
+              {/* Smart snap guide lines */}
+              {guides.v.map((x, i) => (
+                <div key={`gv${i}`} className="pointer-events-none absolute top-0 bottom-0 w-px bg-fuchsia-500 shadow-[0_0_6px_rgba(217,70,239,0.7)] z-[9999]" style={{ left: x }} />
+              ))}
+              {guides.h.map((y, i) => (
+                <div key={`gh${i}`} className="pointer-events-none absolute left-0 right-0 h-px bg-fuchsia-500 shadow-[0_0_6px_rgba(217,70,239,0.7)] z-[9999]" style={{ top: y }} />
+              ))}
             </div>
           </div>
         </main>
