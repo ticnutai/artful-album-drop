@@ -268,6 +268,8 @@ export function LayoutEditor({
 
   const gap = 12;
   const pxToGrid = (px: number, size: number) => Math.round(px / (size + gap));
+  // Fractional grid units based on current precision (subdiv)
+  const pxToFine = (px: number, size: number) => Math.round((px / (size + gap)) * subdiv) / subdiv;
   const gridToPx = (g: number, size: number) => g * (size + gap);
 
   // Smart snapping: compute guide lines against other blocks + canvas edges/centers
