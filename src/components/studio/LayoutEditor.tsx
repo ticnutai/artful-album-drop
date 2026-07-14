@@ -9,6 +9,7 @@ import {
   AlignHorizontalJustifyStart, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyEnd,
   Layers, Grid3x3, ArrowUp, ArrowDown,
+  Magnet,
 } from "lucide-react";
 import { BlockContent, BLOCK_LIBRARY, defaultSpec, type Block, type BlockType, type LayoutSpec } from "./BlockRenderer";
 import type { Theme } from "./shared";
