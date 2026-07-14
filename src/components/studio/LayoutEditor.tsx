@@ -345,6 +345,17 @@ export function LayoutEditor({
           <button onClick={() => dispatch({ type: "redo" })} disabled={!state.future.length} className="p-2 hover:bg-slate-100 rounded-lg disabled:opacity-30" aria-label="חזור"><Redo2 className="size-4" /></button>
         </div>
         <div className="text-xs text-slate-500 mr-auto">{spec.blocks.length} רכיבים · רשת {spec.grid.cols}×{spec.grid.rows}</div>
+        <button
+          onClick={() => setSnapLevel((l) => (l + 1) % SNAP_LEVELS.length)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+            snapPx > 0
+              ? "bg-primary/10 border-primary/40 text-primary"
+              : "bg-slate-50 border-slate-200 text-slate-500"
+          }`}
+          title="רגישות הצמדה"
+        >
+          <Magnet className="size-3.5" /> הצמדה · {SNAP_LEVELS[snapLevel].label}
+        </button>
         <button onClick={save} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 disabled:opacity-50">
           <Save className="size-4" /> {saving ? "שומר…" : "שמור פריסה"}
         </button>
