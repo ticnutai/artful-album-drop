@@ -352,18 +352,47 @@ export function LayoutEditor({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("יש להתחבר כדי לשמור"); return; }
       if (layoutId) {
-        const { error } = await supabase.from("custom_layouts").update({ name, spec: spec as never, thumbnail }).eq("id", layoutId);
+        const { error } = await supabase.from("custom_layouts").update({ name, folder: folder || null, spec: spec as never, thumbnail }).eq("id", layoutId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("custom_layouts").insert({ user_id: user.id, name, spec: spec as never, thumbnail });
+        const { error } = await supabase.from("custom_layouts").insert({ user_id: user.id, name, folder: folder || null, spec: spec as never, thumbnail });
         if (error) throw error;
       }
+      clearDraft(draftKey);
       toast.success("הפריסה נשמרה");
       onExit();
     } catch (e) {
       console.error(e);
       toast.error("שגיאה בשמירה");
     } finally { setSaving(false); }
+  };
+
+  // Share / export / import
+  const shareLink = async () => {
+    try {
+      const url = buildShareUrl({ name, spec });
+      await navigator.clipboard.writeText(url);
+      toast.success("קישור השיתוף הועתק");
+    } catch { toast.error("לא ניתן להעתיק"); }
+  };
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify({ name, folder: folder || null, spec }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name || "layout"}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  const importJson = async (file: File) => {
+    try {
+      const text = await file.text();
+      const obj = JSON.parse(text);
+      if (!obj?.spec?.blocks) throw new Error("bad");
+      dispatch({ type: "set", spec: obj.spec });
+      if (typeof obj.name === "string") setName(obj.name);
+      if (typeof obj.folder === "string") setFolder(obj.folder);
+      toast.success("יובא בהצלחה");
+    } catch { toast.error("קובץ לא תקין"); }
   };
 
   return (
