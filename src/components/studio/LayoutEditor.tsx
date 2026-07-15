@@ -9,12 +9,14 @@ import {
   AlignHorizontalJustifyStart, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyEnd,
   Layers, Grid3x3, ArrowUp, ArrowDown,
-  Magnet,
+  Magnet, Share2, Download, Upload, Folder, Cloud, Check,
 } from "lucide-react";
 import { BlockContent, BLOCK_LIBRARY, defaultSpec, type Block, type BlockType, type LayoutSpec } from "./BlockRenderer";
 import type { Theme } from "./shared";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAutosave, loadDraft, clearDraft, relativeTime } from "./useAutosave";
+import { buildShareUrl } from "./layoutShareCodec";
 
 type State = { spec: LayoutSpec; past: LayoutSpec[]; future: LayoutSpec[] };
 type Action =
