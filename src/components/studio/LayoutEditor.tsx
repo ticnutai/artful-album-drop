@@ -456,9 +456,22 @@ export function LayoutEditor({
           <Target className="size-3.5" /> דיוק · {PRECISION_LEVELS[precisionIdx].label}
         </button>
         <button onClick={save} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 disabled:opacity-50">
-          <Save className="size-4" /> {saving ? "שומר…" : "שמור פריסה"}
+          <Cloud className="size-4" /> {saving ? "שומר…" : "שמור לענן"}
         </button>
       </header>
+
+      {draftBanner && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3 text-sm text-amber-900">
+          <span className="font-bold">יש טיוטה שלא נשמרה</span>
+          <span className="text-amber-700">· {relativeTime(draftBanner.ts)}</span>
+          <div className="mr-auto flex items-center gap-2">
+            <button onClick={() => { dispatch({ type: "set", spec: draftBanner.spec }); setName(draftBanner.name || name); setDraftBanner(null); toast.success("הטיוטה שוחזרה"); }}
+                    className="px-3 py-1 rounded-lg bg-amber-500 text-white text-xs font-bold hover:brightness-110">שחזר</button>
+            <button onClick={() => { clearDraft(draftKey); setDraftBanner(null); }}
+                    className="px-3 py-1 rounded-lg bg-white border border-amber-300 text-amber-700 text-xs font-bold hover:bg-amber-100">התעלם</button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden">
         {/* Component palette */}
