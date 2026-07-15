@@ -130,7 +130,7 @@ const builtins: { key: BuiltInKey; label: string; description: string; icon: typ
 
 function LayoutSwitcher({
   currentBuiltin, currentCustomId, customLayouts, userId,
-  onBuiltinChange, onCustomChange, onNew, onEdit, onDelete, onSignOut, onSignIn,
+  onBuiltinChange, onCustomChange, onNew, onEdit, onDelete, onDuplicate, onReorder, onSignOut, onSignIn,
 }: {
   currentBuiltin: BuiltInKey | null;
   currentCustomId: string | null;
@@ -141,10 +141,41 @@ function LayoutSwitcher({
   onNew: () => void;
   onEdit: (l: CustomLayout) => void;
   onDelete: (l: CustomLayout) => void;
+  onDuplicate: (l: CustomLayout) => void;
+  onReorder: (ordered: CustomLayout[]) => void;
   onSignOut: () => void;
   onSignIn: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const filtered = customLayouts.filter((l) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return l.name.toLowerCase().includes(q) || (l.folder ?? "").toLowerCase().includes(q);
+  });
+  const groups = new Map<string, CustomLayout[]>();
+  for (const l of filtered) {
+    const key = l.folder?.trim() || "";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(l);
+  }
+  const groupKeys = Array.from(groups.keys()).sort((a, b) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b, "he")));
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) return;
+    const ids = customLayouts.map((l) => l.id);
+    const from = ids.indexOf(dragId);
+    const to = ids.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    const next = [...customLayouts];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onReorder(next);
+    setDragId(null);
+  };
+
   return (
     <div className="fixed bottom-6 left-6 z-50" dir="rtl">
       {open && (
@@ -158,6 +189,18 @@ function LayoutSwitcher({
               <button onClick={onSignIn} className="text-xs text-gold-soft hover:text-gold flex items-center gap-1"><User className="size-3" />התחבר לשמירה</button>
             )}
           </div>
+
+          {customLayouts.length > 0 && (
+            <div className="px-2 pb-2">
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/5 border border-white/5">
+                <Search className="size-3.5 text-white/40" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="חפש פריסה או תיקייה"
+                       className="flex-1 bg-transparent outline-none text-xs text-champagne placeholder:text-white/30" />
+                {query && <button onClick={() => setQuery("")}><X className="size-3 text-white/40" /></button>}
+              </div>
+            </div>
+          )}
+
           {builtins.map((opt) => {
             const Icon = opt.icon;
             const active = currentBuiltin === opt.key && !currentCustomId;
@@ -174,26 +217,42 @@ function LayoutSwitcher({
             );
           })}
 
-          {customLayouts.length > 0 && (
+          {filtered.length > 0 && (
             <>
               <div className="mx-3 my-2 h-px bg-[oklch(0.76_0.13_85/0.15)]" />
-              <div className="px-3 py-1 text-[10px] font-bold text-gold uppercase tracking-[0.25em]">שלי</div>
-              {customLayouts.map((l) => {
-                const active = currentCustomId === l.id;
-                return (
-                  <div key={l.id} className={`group flex items-center gap-2 p-2 rounded-xl ${active ? "bg-[oklch(0.76_0.13_85/0.14)] ring-1 ring-[oklch(0.76_0.13_85/0.35)]" : "hover:bg-[oklch(1_0_0/0.04)]"}`}>
-                    <button onClick={() => { onCustomChange(l); setOpen(false); }} className="flex items-center gap-3 flex-1 min-w-0 text-right">
-                      <div className="size-10 rounded-lg bg-[oklch(1_0_0/0.05)] overflow-hidden shrink-0 ring-1 ring-[oklch(0.76_0.13_85/0.25)]">
-                        {l.thumbnail ? <img src={l.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-muted-foreground"><LayoutGrid className="size-4" /></div>}
-                      </div>
-                      <span className="font-serif text-base truncate flex-1 text-champagne">{l.name}</span>
-                      {active && <Check className="size-4 text-gold shrink-0" />}
-                    </button>
-                    <button onClick={() => onEdit(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="ערוך"><Pencil className="size-3.5 text-gold-soft" /></button>
-                    <button onClick={() => onDelete(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="מחק"><Trash2 className="size-3.5 text-destructive" /></button>
+              {groupKeys.map((gk) => (
+                <div key={gk || "_root"}>
+                  <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-gold uppercase tracking-[0.25em] flex items-center gap-1">
+                    {gk ? (<><FolderOpen className="size-3" /> {gk}</>) : "שלי"}
                   </div>
-                );
-              })}
+                  {groups.get(gk)!.map((l) => {
+                    const active = currentCustomId === l.id;
+                    return (
+                      <div
+                        key={l.id}
+                        draggable
+                        onDragStart={() => setDragId(l.id)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDrop(l.id)}
+                        onDragEnd={() => setDragId(null)}
+                        className={`group flex items-center gap-2 p-2 rounded-xl ${active ? "bg-[oklch(0.76_0.13_85/0.14)] ring-1 ring-[oklch(0.76_0.13_85/0.35)]" : "hover:bg-[oklch(1_0_0/0.04)]"} ${dragId === l.id ? "opacity-40" : ""}`}
+                      >
+                        <GripVertical className="size-3.5 text-white/25 cursor-grab shrink-0" />
+                        <button onClick={() => { onCustomChange(l); setOpen(false); }} className="flex items-center gap-3 flex-1 min-w-0 text-right">
+                          <div className="size-10 rounded-lg bg-[oklch(1_0_0/0.05)] overflow-hidden shrink-0 ring-1 ring-[oklch(0.76_0.13_85/0.25)]">
+                            {l.thumbnail ? <img src={l.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-muted-foreground"><LayoutGrid className="size-4" /></div>}
+                          </div>
+                          <span className="font-serif text-base truncate flex-1 text-champagne">{l.name}</span>
+                          {active && <Check className="size-4 text-gold shrink-0" />}
+                        </button>
+                        <button onClick={() => onDuplicate(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="שכפל"><Copy className="size-3.5 text-gold-soft" /></button>
+                        <button onClick={() => onEdit(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="ערוך"><Pencil className="size-3.5 text-gold-soft" /></button>
+                        <button onClick={() => onDelete(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="מחק"><Trash2 className="size-3.5 text-destructive" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </>
           )}
 
