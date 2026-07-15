@@ -120,7 +120,7 @@ function FloatingLayout() {
 // ---------- switcher ----------
 
 type BuiltInKey = "studio" | "command" | "floating";
-type CustomLayout = { id: string; name: string; spec: LayoutSpec; thumbnail: string | null };
+type CustomLayout = { id: string; name: string; spec: LayoutSpec; thumbnail: string | null; folder: string | null; sort_order: number };
 
 const builtins: { key: BuiltInKey; label: string; description: string; icon: typeof LayoutGrid }[] = [
   { key: "studio", label: "סטודיו בהיר", description: "סייד־בר עם משתתפים", icon: LayoutPanelLeft },
