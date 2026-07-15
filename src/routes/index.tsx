@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutGrid, LayoutPanelLeft, Sparkles, Check, Plus, Pencil, Trash2, LogOut, User } from "lucide-react";
+import { LayoutGrid, LayoutPanelLeft, Sparkles, Check, Plus, Pencil, Trash2, LogOut, User, Copy, Search, GripVertical, FolderOpen, X, BookmarkPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -10,6 +10,8 @@ import {
 import { CustomLayoutRenderer } from "@/components/studio/CustomLayoutRenderer";
 import { LayoutEditor } from "@/components/studio/LayoutEditor";
 import type { LayoutSpec } from "@/components/studio/BlockRenderer";
+import { ChatPanel } from "@/components/studio/ChatPanel";
+import { decodeShare } from "@/components/studio/layoutShareCodec";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -118,7 +120,7 @@ function FloatingLayout() {
 // ---------- switcher ----------
 
 type BuiltInKey = "studio" | "command" | "floating";
-type CustomLayout = { id: string; name: string; spec: LayoutSpec; thumbnail: string | null };
+type CustomLayout = { id: string; name: string; spec: LayoutSpec; thumbnail: string | null; folder: string | null; sort_order: number };
 
 const builtins: { key: BuiltInKey; label: string; description: string; icon: typeof LayoutGrid }[] = [
   { key: "studio", label: "סטודיו בהיר", description: "סייד־בר עם משתתפים", icon: LayoutPanelLeft },
@@ -128,7 +130,7 @@ const builtins: { key: BuiltInKey; label: string; description: string; icon: typ
 
 function LayoutSwitcher({
   currentBuiltin, currentCustomId, customLayouts, userId,
-  onBuiltinChange, onCustomChange, onNew, onEdit, onDelete, onSignOut, onSignIn,
+  onBuiltinChange, onCustomChange, onNew, onEdit, onDelete, onDuplicate, onReorder, onSignOut, onSignIn,
 }: {
   currentBuiltin: BuiltInKey | null;
   currentCustomId: string | null;
@@ -139,10 +141,41 @@ function LayoutSwitcher({
   onNew: () => void;
   onEdit: (l: CustomLayout) => void;
   onDelete: (l: CustomLayout) => void;
+  onDuplicate: (l: CustomLayout) => void;
+  onReorder: (ordered: CustomLayout[]) => void;
   onSignOut: () => void;
   onSignIn: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const filtered = customLayouts.filter((l) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return l.name.toLowerCase().includes(q) || (l.folder ?? "").toLowerCase().includes(q);
+  });
+  const groups = new Map<string, CustomLayout[]>();
+  for (const l of filtered) {
+    const key = l.folder?.trim() || "";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(l);
+  }
+  const groupKeys = Array.from(groups.keys()).sort((a, b) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b, "he")));
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) return;
+    const ids = customLayouts.map((l) => l.id);
+    const from = ids.indexOf(dragId);
+    const to = ids.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    const next = [...customLayouts];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onReorder(next);
+    setDragId(null);
+  };
+
   return (
     <div className="fixed bottom-6 left-6 z-50" dir="rtl">
       {open && (
@@ -156,6 +189,18 @@ function LayoutSwitcher({
               <button onClick={onSignIn} className="text-xs text-gold-soft hover:text-gold flex items-center gap-1"><User className="size-3" />התחבר לשמירה</button>
             )}
           </div>
+
+          {customLayouts.length > 0 && (
+            <div className="px-2 pb-2">
+              <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/5 border border-white/5">
+                <Search className="size-3.5 text-white/40" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="חפש פריסה או תיקייה"
+                       className="flex-1 bg-transparent outline-none text-xs text-champagne placeholder:text-white/30" />
+                {query && <button onClick={() => setQuery("")}><X className="size-3 text-white/40" /></button>}
+              </div>
+            </div>
+          )}
+
           {builtins.map((opt) => {
             const Icon = opt.icon;
             const active = currentBuiltin === opt.key && !currentCustomId;
@@ -172,26 +217,42 @@ function LayoutSwitcher({
             );
           })}
 
-          {customLayouts.length > 0 && (
+          {filtered.length > 0 && (
             <>
               <div className="mx-3 my-2 h-px bg-[oklch(0.76_0.13_85/0.15)]" />
-              <div className="px-3 py-1 text-[10px] font-bold text-gold uppercase tracking-[0.25em]">שלי</div>
-              {customLayouts.map((l) => {
-                const active = currentCustomId === l.id;
-                return (
-                  <div key={l.id} className={`group flex items-center gap-2 p-2 rounded-xl ${active ? "bg-[oklch(0.76_0.13_85/0.14)] ring-1 ring-[oklch(0.76_0.13_85/0.35)]" : "hover:bg-[oklch(1_0_0/0.04)]"}`}>
-                    <button onClick={() => { onCustomChange(l); setOpen(false); }} className="flex items-center gap-3 flex-1 min-w-0 text-right">
-                      <div className="size-10 rounded-lg bg-[oklch(1_0_0/0.05)] overflow-hidden shrink-0 ring-1 ring-[oklch(0.76_0.13_85/0.25)]">
-                        {l.thumbnail ? <img src={l.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-muted-foreground"><LayoutGrid className="size-4" /></div>}
-                      </div>
-                      <span className="font-serif text-base truncate flex-1 text-champagne">{l.name}</span>
-                      {active && <Check className="size-4 text-gold shrink-0" />}
-                    </button>
-                    <button onClick={() => onEdit(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="ערוך"><Pencil className="size-3.5 text-gold-soft" /></button>
-                    <button onClick={() => onDelete(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="מחק"><Trash2 className="size-3.5 text-destructive" /></button>
+              {groupKeys.map((gk) => (
+                <div key={gk || "_root"}>
+                  <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-gold uppercase tracking-[0.25em] flex items-center gap-1">
+                    {gk ? (<><FolderOpen className="size-3" /> {gk}</>) : "שלי"}
                   </div>
-                );
-              })}
+                  {groups.get(gk)!.map((l) => {
+                    const active = currentCustomId === l.id;
+                    return (
+                      <div
+                        key={l.id}
+                        draggable
+                        onDragStart={() => setDragId(l.id)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDrop(l.id)}
+                        onDragEnd={() => setDragId(null)}
+                        className={`group flex items-center gap-2 p-2 rounded-xl ${active ? "bg-[oklch(0.76_0.13_85/0.14)] ring-1 ring-[oklch(0.76_0.13_85/0.35)]" : "hover:bg-[oklch(1_0_0/0.04)]"} ${dragId === l.id ? "opacity-40" : ""}`}
+                      >
+                        <GripVertical className="size-3.5 text-white/25 cursor-grab shrink-0" />
+                        <button onClick={() => { onCustomChange(l); setOpen(false); }} className="flex items-center gap-3 flex-1 min-w-0 text-right">
+                          <div className="size-10 rounded-lg bg-[oklch(1_0_0/0.05)] overflow-hidden shrink-0 ring-1 ring-[oklch(0.76_0.13_85/0.25)]">
+                            {l.thumbnail ? <img src={l.thumbnail} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full grid place-items-center text-muted-foreground"><LayoutGrid className="size-4" /></div>}
+                          </div>
+                          <span className="font-serif text-base truncate flex-1 text-champagne">{l.name}</span>
+                          {active && <Check className="size-4 text-gold shrink-0" />}
+                        </button>
+                        <button onClick={() => onDuplicate(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="שכפל"><Copy className="size-3.5 text-gold-soft" /></button>
+                        <button onClick={() => onEdit(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="ערוך"><Pencil className="size-3.5 text-gold-soft" /></button>
+                        <button onClick={() => onDelete(l)} className="p-1.5 rounded hover:bg-[oklch(1_0_0/0.08)] opacity-0 group-hover:opacity-100" title="מחק"><Trash2 className="size-3.5 text-destructive" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </>
           )}
 
@@ -212,7 +273,9 @@ function LayoutSwitcher({
 
 // ---------- page ----------
 
-type EditorState = { open: false } | { open: true; initial?: LayoutSpec; name?: string; id?: string };
+type EditorState = { open: false } | { open: true; initial?: LayoutSpec; name?: string; folder?: string | null; id?: string };
+
+type SharedLayout = { name: string; spec: LayoutSpec };
 
 function StudioPage() {
   const navigate = useNavigate();
@@ -221,6 +284,18 @@ function StudioPage() {
   const [customLayouts, setCustomLayouts] = useState<CustomLayout[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState>({ open: false });
+  const [shared, setShared] = useState<SharedLayout | null>(null);
+
+  // Load shared layout from URL (?share=...)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("share");
+    if (!code) return;
+    const decoded = decodeShare(code);
+    if (decoded) setShared(decoded);
+    else toast.error("קישור השיתוף אינו תקין");
+  }, []);
 
   // Auth
   useEffect(() => {
@@ -244,9 +319,16 @@ function StudioPage() {
   // Fetch custom layouts
   const fetchLayouts = async () => {
     if (!userId) { setCustomLayouts([]); return; }
-    const { data, error } = await supabase.from("custom_layouts").select("id,name,spec,thumbnail").order("updated_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("custom_layouts")
+      .select("id,name,spec,thumbnail,folder,sort_order")
+      .order("sort_order", { ascending: true })
+      .order("updated_at", { ascending: false });
     if (error) { console.error(error); return; }
-    setCustomLayouts((data ?? []).map((r) => ({ id: r.id, name: r.name, spec: r.spec as unknown as LayoutSpec, thumbnail: r.thumbnail })));
+    setCustomLayouts((data ?? []).map((r) => ({
+      id: r.id, name: r.name, spec: r.spec as unknown as LayoutSpec,
+      thumbnail: r.thumbnail, folder: r.folder, sort_order: r.sort_order,
+    })));
   };
   useEffect(() => { fetchLayouts(); }, [userId]);
 
@@ -265,7 +347,7 @@ function StudioPage() {
     if (!userId) { toast.info("התחבר כדי לבנות ולשמור פריסות"); navigate({ to: "/auth" }); return; }
     setEditor({ open: true });
   };
-  const openEdit = (l: CustomLayout) => setEditor({ open: true, initial: l.spec, name: l.name, id: l.id });
+  const openEdit = (l: CustomLayout) => setEditor({ open: true, initial: l.spec, name: l.name, folder: l.folder, id: l.id });
 
   const deleteLayout = async (l: CustomLayout) => {
     if (!confirm(`למחוק את "${l.name}"?`)) return;
@@ -276,18 +358,71 @@ function StudioPage() {
     fetchLayouts();
   };
 
+  const duplicateLayout = async (l: CustomLayout) => {
+    if (!userId) return;
+    const { error } = await supabase.from("custom_layouts").insert({
+      user_id: userId, name: `${l.name} — עותק`, spec: l.spec as never,
+      thumbnail: l.thumbnail, folder: l.folder, sort_order: l.sort_order + 1,
+    });
+    if (error) { toast.error("שגיאה בשכפול"); return; }
+    toast.success("שוכפל");
+    fetchLayouts();
+  };
+
+  const reorderLayouts = async (ordered: CustomLayout[]) => {
+    setCustomLayouts(ordered.map((l, i) => ({ ...l, sort_order: i })));
+    const updates = ordered.map((l, i) =>
+      supabase.from("custom_layouts").update({ sort_order: i }).eq("id", l.id),
+    );
+    const results = await Promise.all(updates);
+    if (results.some((r) => r.error)) { toast.error("שגיאה בשמירת סדר"); fetchLayouts(); }
+  };
+
+  const saveSharedToLibrary = async () => {
+    if (!shared) return;
+    if (!userId) { toast.info("התחבר כדי לשמור"); navigate({ to: "/auth" }); return; }
+    const { data, error } = await supabase.from("custom_layouts").insert({
+      user_id: userId, name: shared.name || "פריסה משותפת", spec: shared.spec as never,
+    }).select("id").single();
+    if (error || !data) { toast.error("שגיאה בשמירה"); return; }
+    toast.success("נשמר בספרייה שלך");
+    // Clear share param + open the new layout
+    window.history.replaceState({}, "", "/");
+    setShared(null);
+    setCustomId(data.id);
+    fetchLayouts();
+  };
+  const dismissShared = () => {
+    window.history.replaceState({}, "", "/");
+    setShared(null);
+  };
+
   const signOut = async () => { await supabase.auth.signOut(); toast.success("התנתקת"); };
 
-  const layoutKey = customId ? `c-${customId}` : `b-${builtin}`;
+  const layoutKey = shared ? "shared" : customId ? `c-${customId}` : `b-${builtin}`;
 
   return (
     <div dir="rtl">
       <div key={layoutKey} className="animate-fade-in">
-        {currentCustom ? <CustomLayoutRenderer spec={currentCustom.spec} />
+        {shared ? <CustomLayoutRenderer spec={shared.spec} />
+          : currentCustom ? <CustomLayoutRenderer spec={currentCustom.spec} />
           : builtin === "studio" ? <StudioLayout />
           : builtin === "command" ? <CommandLayout />
           : <FloatingLayout />}
       </div>
+
+      {shared && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-4 py-2.5 rounded-2xl border border-[oklch(0.76_0.13_85/0.35)]"
+             style={{ background: "linear-gradient(180deg, oklch(0.19 0.006 60), oklch(0.14 0.006 60))", boxShadow: "0 20px 40px -10px rgba(0,0,0,0.5)" }}>
+          <span className="text-champagne text-sm">מציג פריסה משותפת: <b className="font-serif">{shared.name || "ללא שם"}</b></span>
+          <button onClick={saveSharedToLibrary}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-primary-foreground"
+                  style={{ background: "var(--gradient-gold)" }}>
+            <BookmarkPlus className="size-3.5" /> שמור לספרייה
+          </button>
+          <button onClick={dismissShared} className="p-1.5 rounded hover:bg-white/5 text-white/60"><X className="size-4" /></button>
+        </div>
+      )}
 
       <LayoutSwitcher
         currentBuiltin={customId ? null : builtin}
@@ -299,13 +434,17 @@ function StudioPage() {
         onNew={openNew}
         onEdit={openEdit}
         onDelete={deleteLayout}
+        onDuplicate={duplicateLayout}
+        onReorder={reorderLayouts}
         onSignOut={signOut}
         onSignIn={() => navigate({ to: "/auth" })}
       />
 
+      <ChatPanel />
+
       {editor.open && (
         <LayoutEditor
-          initial={editor.initial} initialName={editor.name} layoutId={editor.id}
+          initial={editor.initial} initialName={editor.name} initialFolder={editor.folder} layoutId={editor.id}
           onExit={() => { setEditor({ open: false }); fetchLayouts(); }}
         />
       )}

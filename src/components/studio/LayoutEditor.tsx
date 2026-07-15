@@ -9,12 +9,14 @@ import {
   AlignHorizontalJustifyStart, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyEnd,
   Layers, Grid3x3, ArrowUp, ArrowDown,
-  Magnet,
+  Magnet, Share2, Download, Upload, Folder, Cloud, Check,
 } from "lucide-react";
 import { BlockContent, BLOCK_LIBRARY, defaultSpec, type Block, type BlockType, type LayoutSpec } from "./BlockRenderer";
 import type { Theme } from "./shared";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAutosave, loadDraft, clearDraft, relativeTime } from "./useAutosave";
+import { buildShareUrl } from "./layoutShareCodec";
 
 type State = { spec: LayoutSpec; past: LayoutSpec[]; future: LayoutSpec[] };
 type Action =
@@ -132,16 +134,30 @@ const TEMPLATES: { key: string; label: string; description: string; icon: string
 ];
 
 export function LayoutEditor({
-  initial, initialName, layoutId, onExit,
+  initial, initialName, initialFolder, layoutId, onExit,
 }: {
-  initial?: LayoutSpec; initialName?: string; layoutId?: string; onExit: () => void;
+  initial?: LayoutSpec; initialName?: string; initialFolder?: string | null; layoutId?: string; onExit: () => void;
 }) {
   const [state, dispatch] = useReducer(reducer, undefined, () => ({ spec: initial ?? defaultSpec(), past: [], future: [] }));
   const [name, setName] = useState(initialName ?? "פריסה חדשה");
+  const [folder, setFolder] = useState<string>(initialFolder ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [cellSize, setCellSize] = useState({ w: 80, h: 80 });
+
+  // Auto-save draft to localStorage (per layoutId or "new")
+  const draftKey = layoutId ?? "new";
+  const [draftBanner, setDraftBanner] = useState<{ ts: number; spec: LayoutSpec; name: string } | null>(null);
+  useEffect(() => {
+    const d = loadDraft(draftKey);
+    // Only show banner if draft is meaningfully different from initial
+    if (d && JSON.stringify(d.spec) !== JSON.stringify(initial ?? defaultSpec())) {
+      setDraftBanner({ ts: d.ts, spec: d.spec, name: d.name });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
+  const savedAt = useAutosave(draftKey, state.spec, name, true);
 
   // Snap sensitivity (0=off). Cycles through low/med/high. Threshold in px.
   const SNAP_LEVELS = [
@@ -336,12 +352,13 @@ export function LayoutEditor({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("יש להתחבר כדי לשמור"); return; }
       if (layoutId) {
-        const { error } = await supabase.from("custom_layouts").update({ name, spec: spec as never, thumbnail }).eq("id", layoutId);
+        const { error } = await supabase.from("custom_layouts").update({ name, folder: folder || null, spec: spec as never, thumbnail }).eq("id", layoutId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("custom_layouts").insert({ user_id: user.id, name, spec: spec as never, thumbnail });
+        const { error } = await supabase.from("custom_layouts").insert({ user_id: user.id, name, folder: folder || null, spec: spec as never, thumbnail });
         if (error) throw error;
       }
+      clearDraft(draftKey);
       toast.success("הפריסה נשמרה");
       onExit();
     } catch (e) {
@@ -350,17 +367,72 @@ export function LayoutEditor({
     } finally { setSaving(false); }
   };
 
+  // Share / export / import
+  const shareLink = async () => {
+    try {
+      const url = buildShareUrl({ name, spec });
+      await navigator.clipboard.writeText(url);
+      toast.success("קישור השיתוף הועתק");
+    } catch { toast.error("לא ניתן להעתיק"); }
+  };
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify({ name, folder: folder || null, spec }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name || "layout"}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  const importJson = async (file: File) => {
+    try {
+      const text = await file.text();
+      const obj = JSON.parse(text);
+      if (!obj?.spec?.blocks) throw new Error("bad");
+      dispatch({ type: "set", spec: obj.spec });
+      if (typeof obj.name === "string") setName(obj.name);
+      if (typeof obj.folder === "string") setFolder(obj.folder);
+      toast.success("יובא בהצלחה");
+    } catch { toast.error("קובץ לא תקין"); }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] bg-slate-100 flex flex-col">
       {/* Top bar */}
       <header className="h-14 bg-white border-b border-slate-200 flex items-center gap-3 px-4 shrink-0">
         <button onClick={onExit} className="p-2 hover:bg-slate-100 rounded-lg" aria-label="יציאה"><X className="size-5" /></button>
         <input value={name} onChange={(e) => setName(e.target.value)} className="font-bold bg-transparent outline-none border-b border-transparent focus:border-primary px-1 min-w-0 flex-1 max-w-xs" />
+        <div className="flex items-center gap-1 text-slate-400" title="תיקייה">
+          <Folder className="size-3.5" />
+          <input
+            value={folder}
+            onChange={(e) => setFolder(e.target.value)}
+            placeholder="תיקייה"
+            className="w-24 text-xs bg-transparent outline-none border-b border-transparent focus:border-primary text-slate-600"
+          />
+        </div>
         <div className="flex items-center gap-1 border-r border-slate-200 pr-3 mr-1">
           <button onClick={() => dispatch({ type: "undo" })} disabled={!state.past.length} className="p-2 hover:bg-slate-100 rounded-lg disabled:opacity-30" aria-label="בטל"><Undo2 className="size-4" /></button>
           <button onClick={() => dispatch({ type: "redo" })} disabled={!state.future.length} className="p-2 hover:bg-slate-100 rounded-lg disabled:opacity-30" aria-label="חזור"><Redo2 className="size-4" /></button>
         </div>
-        <div className="text-xs text-slate-500 mr-auto">{spec.blocks.length} רכיבים · רשת {spec.grid.cols}×{spec.grid.rows}</div>
+        <div className="text-xs text-slate-500 mr-auto flex items-center gap-2">
+          <span>{spec.blocks.length} רכיבים · רשת {spec.grid.cols}×{spec.grid.rows}</span>
+          {savedAt && (
+            <span className="flex items-center gap-1 text-emerald-600" title="נשמרה טיוטה מקומית">
+              <Check className="size-3" /> טיוטה · {relativeTime(savedAt)}
+            </span>
+          )}
+        </div>
+        <button onClick={shareLink} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600" title="קישור שיתוף">
+          <Share2 className="size-3.5" /> שתף
+        </button>
+        <button onClick={exportJson} className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600" title="ייצוא JSON">
+          <Download className="size-3.5" />
+        </button>
+        <label className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 cursor-pointer" title="ייבוא JSON">
+          <Upload className="size-3.5" />
+          <input type="file" accept="application/json" className="hidden"
+                 onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.currentTarget.value = ""; }} />
+        </label>
         <button
           onClick={() => setSnapLevel((l) => (l + 1) % SNAP_LEVELS.length)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
@@ -384,9 +456,22 @@ export function LayoutEditor({
           <Target className="size-3.5" /> דיוק · {PRECISION_LEVELS[precisionIdx].label}
         </button>
         <button onClick={save} disabled={saving} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:brightness-110 disabled:opacity-50">
-          <Save className="size-4" /> {saving ? "שומר…" : "שמור פריסה"}
+          <Cloud className="size-4" /> {saving ? "שומר…" : "שמור לענן"}
         </button>
       </header>
+
+      {draftBanner && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3 text-sm text-amber-900">
+          <span className="font-bold">יש טיוטה שלא נשמרה</span>
+          <span className="text-amber-700">· {relativeTime(draftBanner.ts)}</span>
+          <div className="mr-auto flex items-center gap-2">
+            <button onClick={() => { dispatch({ type: "set", spec: draftBanner.spec }); setName(draftBanner.name || name); setDraftBanner(null); toast.success("הטיוטה שוחזרה"); }}
+                    className="px-3 py-1 rounded-lg bg-amber-500 text-white text-xs font-bold hover:brightness-110">שחזר</button>
+            <button onClick={() => { clearDraft(draftKey); setDraftBanner(null); }}
+                    className="px-3 py-1 rounded-lg bg-white border border-amber-300 text-amber-700 text-xs font-bold hover:bg-amber-100">התעלם</button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden">
         {/* Component palette */}
