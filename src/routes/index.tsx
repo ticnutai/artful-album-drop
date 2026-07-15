@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutGrid, LayoutPanelLeft, Sparkles, Check, Plus, Pencil, Trash2, LogOut, User } from "lucide-react";
+import { LayoutGrid, LayoutPanelLeft, Sparkles, Check, Plus, Pencil, Trash2, LogOut, User, Copy, Search, GripVertical, FolderOpen, X, BookmarkPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -10,6 +10,8 @@ import {
 import { CustomLayoutRenderer } from "@/components/studio/CustomLayoutRenderer";
 import { LayoutEditor } from "@/components/studio/LayoutEditor";
 import type { LayoutSpec } from "@/components/studio/BlockRenderer";
+import { ChatPanel } from "@/components/studio/ChatPanel";
+import { decodeShare } from "@/components/studio/layoutShareCodec";
 
 export const Route = createFileRoute("/")({
   head: () => ({
