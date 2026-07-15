@@ -273,7 +273,9 @@ function LayoutSwitcher({
 
 // ---------- page ----------
 
-type EditorState = { open: false } | { open: true; initial?: LayoutSpec; name?: string; id?: string };
+type EditorState = { open: false } | { open: true; initial?: LayoutSpec; name?: string; folder?: string | null; id?: string };
+
+type SharedLayout = { name: string; spec: LayoutSpec };
 
 function StudioPage() {
   const navigate = useNavigate();
@@ -282,6 +284,18 @@ function StudioPage() {
   const [customLayouts, setCustomLayouts] = useState<CustomLayout[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState>({ open: false });
+  const [shared, setShared] = useState<SharedLayout | null>(null);
+
+  // Load shared layout from URL (?share=...)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("share");
+    if (!code) return;
+    const decoded = decodeShare(code);
+    if (decoded) setShared(decoded);
+    else toast.error("קישור השיתוף אינו תקין");
+  }, []);
 
   // Auth
   useEffect(() => {
@@ -305,9 +319,16 @@ function StudioPage() {
   // Fetch custom layouts
   const fetchLayouts = async () => {
     if (!userId) { setCustomLayouts([]); return; }
-    const { data, error } = await supabase.from("custom_layouts").select("id,name,spec,thumbnail").order("updated_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("custom_layouts")
+      .select("id,name,spec,thumbnail,folder,sort_order")
+      .order("sort_order", { ascending: true })
+      .order("updated_at", { ascending: false });
     if (error) { console.error(error); return; }
-    setCustomLayouts((data ?? []).map((r) => ({ id: r.id, name: r.name, spec: r.spec as unknown as LayoutSpec, thumbnail: r.thumbnail })));
+    setCustomLayouts((data ?? []).map((r) => ({
+      id: r.id, name: r.name, spec: r.spec as unknown as LayoutSpec,
+      thumbnail: r.thumbnail, folder: r.folder, sort_order: r.sort_order,
+    })));
   };
   useEffect(() => { fetchLayouts(); }, [userId]);
 
@@ -326,7 +347,7 @@ function StudioPage() {
     if (!userId) { toast.info("התחבר כדי לבנות ולשמור פריסות"); navigate({ to: "/auth" }); return; }
     setEditor({ open: true });
   };
-  const openEdit = (l: CustomLayout) => setEditor({ open: true, initial: l.spec, name: l.name, id: l.id });
+  const openEdit = (l: CustomLayout) => setEditor({ open: true, initial: l.spec, name: l.name, folder: l.folder, id: l.id });
 
   const deleteLayout = async (l: CustomLayout) => {
     if (!confirm(`למחוק את "${l.name}"?`)) return;
@@ -337,18 +358,71 @@ function StudioPage() {
     fetchLayouts();
   };
 
+  const duplicateLayout = async (l: CustomLayout) => {
+    if (!userId) return;
+    const { error } = await supabase.from("custom_layouts").insert({
+      user_id: userId, name: `${l.name} — עותק`, spec: l.spec as never,
+      thumbnail: l.thumbnail, folder: l.folder, sort_order: l.sort_order + 1,
+    });
+    if (error) { toast.error("שגיאה בשכפול"); return; }
+    toast.success("שוכפל");
+    fetchLayouts();
+  };
+
+  const reorderLayouts = async (ordered: CustomLayout[]) => {
+    setCustomLayouts(ordered.map((l, i) => ({ ...l, sort_order: i })));
+    const updates = ordered.map((l, i) =>
+      supabase.from("custom_layouts").update({ sort_order: i }).eq("id", l.id),
+    );
+    const results = await Promise.all(updates);
+    if (results.some((r) => r.error)) { toast.error("שגיאה בשמירת סדר"); fetchLayouts(); }
+  };
+
+  const saveSharedToLibrary = async () => {
+    if (!shared) return;
+    if (!userId) { toast.info("התחבר כדי לשמור"); navigate({ to: "/auth" }); return; }
+    const { data, error } = await supabase.from("custom_layouts").insert({
+      user_id: userId, name: shared.name || "פריסה משותפת", spec: shared.spec as never,
+    }).select("id").single();
+    if (error || !data) { toast.error("שגיאה בשמירה"); return; }
+    toast.success("נשמר בספרייה שלך");
+    // Clear share param + open the new layout
+    window.history.replaceState({}, "", "/");
+    setShared(null);
+    setCustomId(data.id);
+    fetchLayouts();
+  };
+  const dismissShared = () => {
+    window.history.replaceState({}, "", "/");
+    setShared(null);
+  };
+
   const signOut = async () => { await supabase.auth.signOut(); toast.success("התנתקת"); };
 
-  const layoutKey = customId ? `c-${customId}` : `b-${builtin}`;
+  const layoutKey = shared ? "shared" : customId ? `c-${customId}` : `b-${builtin}`;
 
   return (
     <div dir="rtl">
       <div key={layoutKey} className="animate-fade-in">
-        {currentCustom ? <CustomLayoutRenderer spec={currentCustom.spec} />
+        {shared ? <CustomLayoutRenderer spec={shared.spec} />
+          : currentCustom ? <CustomLayoutRenderer spec={currentCustom.spec} />
           : builtin === "studio" ? <StudioLayout />
           : builtin === "command" ? <CommandLayout />
           : <FloatingLayout />}
       </div>
+
+      {shared && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 px-4 py-2.5 rounded-2xl border border-[oklch(0.76_0.13_85/0.35)]"
+             style={{ background: "linear-gradient(180deg, oklch(0.19 0.006 60), oklch(0.14 0.006 60))", boxShadow: "0 20px 40px -10px rgba(0,0,0,0.5)" }}>
+          <span className="text-champagne text-sm">מציג פריסה משותפת: <b className="font-serif">{shared.name || "ללא שם"}</b></span>
+          <button onClick={saveSharedToLibrary}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-primary-foreground"
+                  style={{ background: "var(--gradient-gold)" }}>
+            <BookmarkPlus className="size-3.5" /> שמור לספרייה
+          </button>
+          <button onClick={dismissShared} className="p-1.5 rounded hover:bg-white/5 text-white/60"><X className="size-4" /></button>
+        </div>
+      )}
 
       <LayoutSwitcher
         currentBuiltin={customId ? null : builtin}
@@ -360,13 +434,17 @@ function StudioPage() {
         onNew={openNew}
         onEdit={openEdit}
         onDelete={deleteLayout}
+        onDuplicate={duplicateLayout}
+        onReorder={reorderLayouts}
         onSignOut={signOut}
         onSignIn={() => navigate({ to: "/auth" })}
       />
 
+      <ChatPanel />
+
       {editor.open && (
         <LayoutEditor
-          initial={editor.initial} initialName={editor.name} layoutId={editor.id}
+          initial={editor.initial} initialName={editor.name} initialFolder={editor.folder} layoutId={editor.id}
           onExit={() => { setEditor({ open: false }); fetchLayouts(); }}
         />
       )}
