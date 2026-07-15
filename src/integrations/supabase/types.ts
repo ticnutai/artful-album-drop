@@ -14,11 +14,40 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          body: string
+          created_at: string
+          display_name: string
+          id: string
+          room_id: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          display_name: string
+          id?: string
+          room_id?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          room_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       custom_layouts: {
         Row: {
           created_at: string
+          folder: string | null
           id: string
           name: string
+          sort_order: number
           spec: Json
           thumbnail: string | null
           updated_at: string
@@ -26,8 +55,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          folder?: string | null
           id?: string
           name: string
+          sort_order?: number
           spec: Json
           thumbnail?: string | null
           updated_at?: string
@@ -35,8 +66,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          folder?: string | null
           id?: string
           name?: string
+          sort_order?: number
           spec?: Json
           thumbnail?: string | null
           updated_at?: string
