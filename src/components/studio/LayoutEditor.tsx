@@ -134,16 +134,30 @@ const TEMPLATES: { key: string; label: string; description: string; icon: string
 ];
 
 export function LayoutEditor({
-  initial, initialName, layoutId, onExit,
+  initial, initialName, initialFolder, layoutId, onExit,
 }: {
-  initial?: LayoutSpec; initialName?: string; layoutId?: string; onExit: () => void;
+  initial?: LayoutSpec; initialName?: string; initialFolder?: string | null; layoutId?: string; onExit: () => void;
 }) {
   const [state, dispatch] = useReducer(reducer, undefined, () => ({ spec: initial ?? defaultSpec(), past: [], future: [] }));
   const [name, setName] = useState(initialName ?? "פריסה חדשה");
+  const [folder, setFolder] = useState<string>(initialFolder ?? "");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [cellSize, setCellSize] = useState({ w: 80, h: 80 });
+
+  // Auto-save draft to localStorage (per layoutId or "new")
+  const draftKey = layoutId ?? "new";
+  const [draftBanner, setDraftBanner] = useState<{ ts: number; spec: LayoutSpec; name: string } | null>(null);
+  useEffect(() => {
+    const d = loadDraft(draftKey);
+    // Only show banner if draft is meaningfully different from initial
+    if (d && JSON.stringify(d.spec) !== JSON.stringify(initial ?? defaultSpec())) {
+      setDraftBanner({ ts: d.ts, spec: d.spec, name: d.name });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
+  const savedAt = useAutosave(draftKey, state.spec, name, true);
 
   // Snap sensitivity (0=off). Cycles through low/med/high. Threshold in px.
   const SNAP_LEVELS = [
