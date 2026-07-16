@@ -14,10 +14,12 @@ export default defineTool({
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async ({ name, spec, folder }, ctx) => {
     if (!ctx.isAuthenticated()) return unauthenticated();
+    const userId = ctx.getUserId();
+    if (!userId) return unauthenticated();
     const { data, error } = await supabaseForUser(ctx)
       .from("custom_layouts")
       .insert({
-        user_id: ctx.getUserId(),
+        user_id: userId,
         name,
         spec: spec as never,
         folder: folder ?? null,

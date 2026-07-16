@@ -98,7 +98,7 @@ function Consent() {
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
             <div className="text-xs text-slate-500 mb-1">הרשאות מבוקשות</div>
             <ul className="list-disc pr-5 space-y-0.5">
-              {scopes.map((s) => <li key={s} dir="ltr" className="font-mono text-xs">{s}</li>)}
+              {scopes.map((s: string) => <li key={s} dir="ltr" className="font-mono text-xs">{s}</li>)}
             </ul>
           </div>
           <p className="text-xs text-slate-500">
