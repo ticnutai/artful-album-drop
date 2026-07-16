@@ -4,6 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 
+function safeNext(next: string | undefined): string {
+  if (!next) return "/";
+  // Same-origin relative path only.
+  if (!next.startsWith("/") || next.startsWith("//")) return "/";
+  return next;
+}
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -11,11 +18,16 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "התחבר כדי לבנות ולשמור פריסות מותאמות אישית" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" ? s.next : undefined,
+  }),
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const target = safeNext(next);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,9 +35,9 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/" });
+      if (data.session) window.location.replace(target);
     });
-  }, [navigate]);
+  }, [target]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +46,7 @@ function AuthPage() {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email, password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: window.location.origin + target },
         });
         if (error) throw error;
         toast.success("נרשמת בהצלחה!");
@@ -42,16 +54,18 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/" });
+      window.location.replace(target);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "שגיאה");
     } finally { setLoading(false); }
   };
 
   const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + target,
+    });
     if (result.error) toast.error("שגיאה בהתחברות עם Google");
-    if (!result.redirected && !result.error) navigate({ to: "/" });
+    if (!result.redirected && !result.error) window.location.replace(target);
   };
 
   return (
