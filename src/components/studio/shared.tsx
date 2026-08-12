@@ -51,11 +51,12 @@ export function useReactions() {
   return { reactions, send };
 }
 
-export type Theme = "light" | "dark" | "glass";
+export type Theme = "light" | "dark" | "glass" | "line";
 
 function themeClasses(theme: Theme) {
   if (theme === "dark") return "bg-slate-900/85 backdrop-blur-xl border-white/10 text-slate-100";
   if (theme === "glass") return "bg-white/60 backdrop-blur-xl border-white/40 text-slate-900 shadow-lg";
+  if (theme === "line") return "bg-[oklch(0.99_0.004_85/0.85)] backdrop-blur-sm border-[oklch(0.2_0.006_60/0.14)] text-[oklch(0.24_0.006_60)]";
   return "bg-white border-slate-200 text-slate-900";
 }
 
@@ -86,19 +87,22 @@ export function Toolbar({ tool: _tool, setTool: _setTool, theme = "light", orien
   const smart = useDraw((s) => s.smart);
   const [openColor, setOpenColor] = useState(false);
   const dark = theme === "dark";
+  const line = theme === "line";
   const vert = orientation === "vertical";
 
   return (
-    <div className={`flex ${vert ? "flex-col" : ""} items-center gap-1 p-2 border rounded-2xl shadow-xl ${themeClasses(theme)}`}>
+    <div className={`flex ${vert ? "flex-col" : ""} items-center gap-1 p-2 border ${line ? "rounded-none" : "rounded-2xl shadow-xl"} ${themeClasses(theme)}`}>
       {tools.map((t) => {
         const active = tool === t.id;
         return (
           <button
             key={t.id}
             onClick={() => { drawStore.setTool(t.id as Tool); _setTool(t.id); }}
-            className={`p-3 rounded-xl transition-all ${
+            className={`p-3 ${line ? "rounded-none" : "rounded-xl"} transition-all ${
               active
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
+                ? line
+                  ? "bg-[oklch(0.2_0.006_60)] text-[oklch(0.98_0.004_85)]"
+                  : "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
                 : dark ? "hover:bg-white/10 text-slate-300" : "hover:bg-slate-100 text-slate-600"
             }`}
             aria-label={t.label} title={t.label}

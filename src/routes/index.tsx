@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutGrid, LayoutPanelLeft, Sparkles, Check, Plus, Pencil, Trash2, LogOut, User, Copy, Search, GripVertical, FolderOpen, X, BookmarkPlus } from "lucide-react";
+import { LayoutGrid, LayoutPanelLeft, Sparkles, Minus, Check, Plus, Pencil, Trash2, LogOut, User, Copy, Search, GripVertical, FolderOpen, X, BookmarkPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -119,13 +119,81 @@ function FloatingLayout() {
 
 // ---------- switcher ----------
 
-type BuiltInKey = "studio" | "command" | "floating";
+function HairlineLayout() {
+  const time = useTimer();
+  const [tool, setTool] = useState("pen");
+  const { reactions, send } = useReactions();
+  const hair = "oklch(0.2 0.006 60 / 0.13)";
+  const active = participants.filter((p) => p.role !== "מנותק");
+  return (
+    <div className="h-screen w-full flex flex-col overflow-hidden bg-[oklch(0.985_0.004_85)] text-[oklch(0.24_0.006_60)]">
+      {/* top hairline bar */}
+      <header className="h-14 shrink-0 flex items-center justify-between px-8 border-b" style={{ borderColor: hair }}>
+        <div className="flex items-center gap-6">
+          <span className="font-mono text-[10px] tracking-[0.4em] uppercase text-[oklch(0.5_0.01_60)]">live</span>
+          <span className="h-3.5 w-px" style={{ background: hair }} />
+          <span className="font-mono text-sm tabular-nums tracking-widest">{time}</span>
+          <span className="h-3.5 w-px" style={{ background: hair }} />
+          <h1 className="text-sm font-light tracking-wide">תוכנית קומה_2.dwg</h1>
+        </div>
+        <div className="flex items-center gap-5">
+          <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-[oklch(0.55_0.01_60)]">4F2K</span>
+          <div className="flex items-center gap-1.5">
+            {active.map((p) => (
+              <span key={p.name} className="size-7 rounded-full grid place-items-center text-[11px] font-medium border" style={{ borderColor: hair }}>{p.initial}</span>
+            ))}
+          </div>
+          <button className="text-xs tracking-wide px-4 py-1.5 border transition-colors hover:bg-[oklch(0.2_0.006_60)] hover:text-[oklch(0.98_0.004_85)]" style={{ borderColor: hair }}>הזמן</button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex min-h-0">
+        {/* thin participant rail */}
+        <aside className="w-60 shrink-0 border-l flex flex-col" style={{ borderColor: hair }}>
+          <div className="px-6 py-4 font-mono text-[10px] uppercase tracking-[0.35em] text-[oklch(0.55_0.01_60)] border-b" style={{ borderColor: hair }}>participants</div>
+          {participants.map((p) => (
+            <div key={p.name} className={`px-6 py-4 border-b flex items-center gap-3 ${p.role === "מנותק" ? "opacity-35" : ""}`} style={{ borderColor: hair }}>
+              <span className="size-1.5 rounded-full" style={{ background: p.role === "מנותק" ? "oklch(0.7 0 0)" : "oklch(0.62 0.14 150)" }} />
+              <div className="min-w-0">
+                <div className="text-sm font-light truncate">{p.name}</div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[oklch(0.6_0.01_60)]">{p.role}</div>
+              </div>
+            </div>
+          ))}
+          <div className="mt-auto px-6 py-4 font-mono text-[10px] tracking-[0.25em] text-[oklch(0.6_0.01_60)] border-t" style={{ borderColor: hair }}>1080P · 60FPS · 32MS</div>
+        </aside>
+
+        {/* canvas field */}
+        <main className="flex-1 relative min-w-0 p-10 flex items-center justify-center">
+          <div className="pointer-events-none absolute inset-0" style={{
+            backgroundImage: `linear-gradient(to right, ${hair} 1px, transparent 1px), linear-gradient(to bottom, ${hair} 1px, transparent 1px)`,
+            backgroundSize: "56px 56px",
+            maskImage: "radial-gradient(ellipse at center, black 30%, transparent 85%)",
+          }} />
+          <div className="relative w-full max-w-5xl aspect-video border" style={{ borderColor: hair }}>
+            <ScreenCanvas rounded="rounded-none" />
+          </div>
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2">
+            <Toolbar tool={tool} setTool={setTool} theme="line" />
+          </div>
+          <div className="absolute bottom-10 right-10 flex flex-col items-center gap-3">
+            <div className="relative h-40 w-12"><ReactionsFloat reactions={reactions} /></div>
+            <EmojiRail onSend={send} theme="line" />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+type BuiltInKey = "studio" | "command" | "floating" | "hairline";
 type CustomLayout = { id: string; name: string; spec: LayoutSpec; thumbnail: string | null; folder: string | null; sort_order: number };
 
 const builtins: { key: BuiltInKey; label: string; description: string; icon: typeof LayoutGrid }[] = [
   { key: "studio", label: "סטודיו בהיר", description: "סייד־בר עם משתתפים", icon: LayoutPanelLeft },
   { key: "command", label: "מרכז פיקוד", description: "מצב כהה", icon: LayoutGrid },
   { key: "floating", label: "קנבס צף", description: "פאנלים זכוכיתיים", icon: Sparkles },
+  { key: "hairline", label: "קו דק", description: "מודרני, מינימלי, קווים עדינים", icon: Minus },
 ];
 
 function LayoutSwitcher({
@@ -344,7 +412,7 @@ function StudioPage() {
   };
 
   const openNew = () => {
-    if (!userId) { toast.info("התחבר כדי לבנות ולשמור פריסות"); navigate({ to: "/auth" }); return; }
+    if (!userId) { toast.info("התחבר כדי לבנות ולשמור פריסות"); navigate({ to: "/auth", search: { next: undefined } }); return; }
     setEditor({ open: true });
   };
   const openEdit = (l: CustomLayout) => setEditor({ open: true, initial: l.spec, name: l.name, folder: l.folder, id: l.id });
@@ -380,7 +448,7 @@ function StudioPage() {
 
   const saveSharedToLibrary = async () => {
     if (!shared) return;
-    if (!userId) { toast.info("התחבר כדי לשמור"); navigate({ to: "/auth" }); return; }
+    if (!userId) { toast.info("התחבר כדי לשמור"); navigate({ to: "/auth", search: { next: undefined } }); return; }
     const { data, error } = await supabase.from("custom_layouts").insert({
       user_id: userId, name: shared.name || "פריסה משותפת", spec: shared.spec as never,
     }).select("id").single();
@@ -408,6 +476,7 @@ function StudioPage() {
           : currentCustom ? <CustomLayoutRenderer spec={currentCustom.spec} />
           : builtin === "studio" ? <StudioLayout />
           : builtin === "command" ? <CommandLayout />
+          : builtin === "hairline" ? <HairlineLayout />
           : <FloatingLayout />}
       </div>
 
@@ -437,7 +506,7 @@ function StudioPage() {
         onDuplicate={duplicateLayout}
         onReorder={reorderLayouts}
         onSignOut={signOut}
-        onSignIn={() => navigate({ to: "/auth" })}
+        onSignIn={() => navigate({ to: "/auth", search: { next: undefined } })}
       />
 
       <ChatPanel />
