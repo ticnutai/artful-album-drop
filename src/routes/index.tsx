@@ -476,6 +476,7 @@ function StudioPage() {
           : currentCustom ? <CustomLayoutRenderer spec={currentCustom.spec} />
           : builtin === "studio" ? <StudioLayout />
           : builtin === "command" ? <CommandLayout />
+          : builtin === "hairline" ? <HairlineLayout />
           : <FloatingLayout />}
       </div>
 
