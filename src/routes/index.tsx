@@ -344,7 +344,7 @@ function StudioPage() {
   };
 
   const openNew = () => {
-    if (!userId) { toast.info("התחבר כדי לבנות ולשמור פריסות"); navigate({ to: "/auth" }); return; }
+    if (!userId) { toast.info("התחבר כדי לבנות ולשמור פריסות"); navigate({ to: "/auth", search: { next: undefined } }); return; }
     setEditor({ open: true });
   };
   const openEdit = (l: CustomLayout) => setEditor({ open: true, initial: l.spec, name: l.name, folder: l.folder, id: l.id });
@@ -380,7 +380,7 @@ function StudioPage() {
 
   const saveSharedToLibrary = async () => {
     if (!shared) return;
-    if (!userId) { toast.info("התחבר כדי לשמור"); navigate({ to: "/auth" }); return; }
+    if (!userId) { toast.info("התחבר כדי לשמור"); navigate({ to: "/auth", search: { next: undefined } }); return; }
     const { data, error } = await supabase.from("custom_layouts").insert({
       user_id: userId, name: shared.name || "פריסה משותפת", spec: shared.spec as never,
     }).select("id").single();
@@ -437,7 +437,7 @@ function StudioPage() {
         onDuplicate={duplicateLayout}
         onReorder={reorderLayouts}
         onSignOut={signOut}
-        onSignIn={() => navigate({ to: "/auth" })}
+        onSignIn={() => navigate({ to: "/auth", search: { next: undefined } })}
       />
 
       <ChatPanel />
