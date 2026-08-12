@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { LayoutGrid, LayoutPanelLeft, Sparkles, Check, Plus, Pencil, Trash2, LogOut, User, Copy, Search, GripVertical, FolderOpen, X, BookmarkPlus } from "lucide-react";
+import { LayoutGrid, LayoutPanelLeft, Sparkles, Minus, Check, Plus, Pencil, Trash2, LogOut, User, Copy, Search, GripVertical, FolderOpen, X, BookmarkPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -119,13 +119,14 @@ function FloatingLayout() {
 
 // ---------- switcher ----------
 
-type BuiltInKey = "studio" | "command" | "floating";
+type BuiltInKey = "studio" | "command" | "floating" | "hairline";
 type CustomLayout = { id: string; name: string; spec: LayoutSpec; thumbnail: string | null; folder: string | null; sort_order: number };
 
 const builtins: { key: BuiltInKey; label: string; description: string; icon: typeof LayoutGrid }[] = [
   { key: "studio", label: "סטודיו בהיר", description: "סייד־בר עם משתתפים", icon: LayoutPanelLeft },
   { key: "command", label: "מרכז פיקוד", description: "מצב כהה", icon: LayoutGrid },
   { key: "floating", label: "קנבס צף", description: "פאנלים זכוכיתיים", icon: Sparkles },
+  { key: "hairline", label: "קו דק", description: "מודרני, מינימלי, קווים עדינים", icon: Minus },
 ];
 
 function LayoutSwitcher({
